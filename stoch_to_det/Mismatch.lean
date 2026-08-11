@@ -1,4 +1,4 @@
-import stoch_to_det.Floor
+import stoch_to_det.Floor994
 import stoch_to_det.Quotient
 
 /-!
@@ -794,7 +794,7 @@ theorem far_charge :
       dsimp [a]
       field_simp [deltaStar_pos.ne', (Real.log_pos (by norm_num : (1 : ℝ) < 2)).ne']
 
-private lemma dMis_eq_sum_pairMass :
+lemma dMis_eq_sum_pairMass :
     K.dMis = ∑ c, ∑ d ∈ univ.filter (fun d => c ≠ d), pairMass K c d := by
   rw [K.dMis_eq]
   unfold pairMass
@@ -1079,5 +1079,199 @@ theorem mismatch_charge_1771 :
     _ ≤ D.M / infoFloor1771 +
         2 * Real.log 2 / delta1771 * K.Sinfo :=
       add_le_add (near_charge_1771 K) (far_charge_1771 K)
+
+
+/-- The improved near relation uses squared Hellinger distance directly. -/
+def IsHNear994 (c d : K.κ) : Prop :=
+  hellingerSq (K.Q c) (K.Q d) ≤ delta994
+
+noncomputable instance instDecidableIsHNear994 (c d : K.κ) :
+    Decidable (IsHNear994 K c d) := Classical.dec _
+
+private lemma far_pair_KL_994 (c d : K.κ) (hfar : ¬ IsHNear994 K c d) :
+    delta994 / Real.log 2 ≤
+      KL (overlapLaw K c d) (K.Q c) + KL (overlapLaw K c d) (K.Q d) := by
+  have hQc := Q_isPMF K c
+  have hQd := Q_isPMF K d
+  have hr := overlapLaw_isPMF K c d
+  have hbh := bhattacharyya_le hQc hQd hr
+    (overlapLaw_absCont_Q K c d) (overlapLaw_absCont_Q_right K c d)
+  have hdelta : delta994 < hellingerSq (K.Q c) (K.Q d) :=
+    lt_of_not_ge hfar
+  have hhell := hellingerSq_eq_two_mul_one_sub_BC hQc hQd
+  have hB : 0 < BC (K.Q c) (K.Q d) := BC_Q_pos K c d
+  have hlog_bound := Real.log_le_sub_one_of_pos hB
+  have hdelta_log :
+      delta994 ≤ -2 * Real.log (BC (K.Q c) (K.Q d)) := by
+    rw [hhell] at hdelta
+    linarith
+  have hlog2 : 0 < Real.log 2 := Real.log_pos one_lt_two
+  calc
+    delta994 / Real.log 2 ≤
+        (-2 * Real.log (BC (K.Q c) (K.Q d))) / Real.log 2 :=
+      (div_le_div_iff_of_pos_right hlog2).2 hdelta_log
+    _ = -2 * lg (BC (K.Q c) (K.Q d)) := by
+      rw [lg_eq_log_div]
+      ring
+    _ ≤ KL (overlapLaw K c d) (K.Q c) +
+        KL (overlapLaw K c d) (K.Q d) := hbh
+
+/-- Near pairs are paid for by the improved component-information floor. -/
+theorem near_charge_994 :
+    ∑ c, ∑ d ∈ univ.filter (fun d => c ≠ d ∧ IsHNear994 K c d), pairMass K c d
+      ≤ D.M / infoFloor994 := by
+  let Incident : K.κ → Prop := fun c => ∃ d, c ≠ d ∧ IsHNear994 K c d
+  letI : DecidablePred Incident := fun c => Classical.dec _
+  have hfloor (c : K.κ) (hc : Incident c) : infoFloor994 ≤ Ixy (K.Q c) := by
+    obtain ⟨d, hcd, hnear⟩ := hc
+    have hQne : K.Q c ≠ K.Q d := fun h => hcd (K.Q_injective h)
+    exact (nearcollision_floor_hellinger994 D.feasible D.conn
+      (K.Q_isContact c) (K.Q_isContact d) hQne hnear).2.2.1
+  have hpay : infoFloor994 *
+      (∑ c ∈ univ.filter Incident, K.s c) ≤ D.M := by
+    calc
+      infoFloor994 * (∑ c ∈ univ.filter Incident, K.s c) =
+          ∑ c ∈ univ.filter Incident, infoFloor994 * K.s c := by
+            rw [mul_sum]
+      _ ≤ ∑ c ∈ univ.filter Incident, K.s c * Ixy (K.Q c) := by
+        apply sum_le_sum
+        intro c hc
+        simpa [mul_comm] using
+          mul_le_mul_of_nonneg_left (hfloor c (mem_filter.mp hc).2) (s_pos K c).le
+      _ ≤ ∑ c, K.s c * Ixy (K.Q c) := by
+        exact sum_le_univ_sum_of_nonneg fun c =>
+          mul_nonneg (s_pos K c).le (Ixy_nonneg_local (Q_isPMF K c))
+      _ = D.M := (M_eq_sum_s_Ixy K).symm
+  have hmass : (∑ c ∈ univ.filter Incident, K.s c) ≤
+      D.M / infoFloor994 := by
+    apply (le_div_iff₀ infoFloor994_pos).2
+    simpa [mul_comm] using hpay
+  have hnear_incident :
+      (∑ c, ∑ d ∈ univ.filter (fun d => c ≠ d ∧ IsHNear994 K c d),
+        pairMass K c d) ≤ ∑ c ∈ univ.filter Incident, K.s c := by
+    rw [sum_filter]
+    apply sum_le_sum
+    intro c _
+    by_cases hc : Incident c
+    · rw [if_pos hc]
+      calc
+        ∑ d ∈ univ.filter (fun d => c ≠ d ∧ IsHNear994 K c d), pairMass K c d ≤
+            ∑ d, pairMass K c d :=
+          sum_le_univ_sum_of_nonneg fun d => pairMass_nonneg K c d
+        _ = K.s c := sum_pairMass_right K c
+    · rw [if_neg hc]
+      have hzero :
+          (∑ d ∈ univ.filter (fun d => c ≠ d ∧ IsHNear994 K c d),
+            pairMass K c d) = 0 := by
+        apply sum_eq_zero
+        intro d hd
+        exact (hc ⟨d, (mem_filter.mp hd).2⟩).elim
+      rw [hzero]
+  exact hnear_incident.trans hmass
+
+/-- Far pairs are paid for at cost `delta994 / log 2`; ordered pairs cause
+the factor two in the resulting coefficient. -/
+theorem far_charge_994 :
+    ∑ c, ∑ d ∈ univ.filter (fun d => c ≠ d ∧ ¬ IsHNear994 K c d), pairMass K c d
+      ≤ 2 * Real.log 2 / delta994 * K.Sinfo := by
+  let a : ℝ := delta994 / Real.log 2
+  let F : ℝ :=
+    ∑ c, ∑ d ∈ univ.filter (fun d => c ≠ d ∧ ¬ IsHNear994 K c d), pairMass K c d
+  let A₁ : ℝ :=
+    ∑ c, ∑ d ∈ univ.filter (fun d => c ≠ d ∧ ¬ IsHNear994 K c d),
+      pairMass K c d * KL (overlapLaw K c d) (K.Q c)
+  let A₂ : ℝ :=
+    ∑ c, ∑ d ∈ univ.filter (fun d => c ≠ d ∧ ¬ IsHNear994 K c d),
+      pairMass K c d * KL (overlapLaw K c d) (K.Q d)
+  have hA₁ : A₁ ≤ K.Sinfo := by
+    dsimp [A₁]
+    rw [Sinfo_eq_sum_KL K]
+    apply sum_le_sum
+    intro c _
+    exact sum_le_univ_sum_of_nonneg fun d =>
+      mul_nonneg (pairMass_nonneg K c d)
+        (KL_nonneg_local (overlapLaw_isPMF K c d) (Q_isPMF K c)
+          (overlapLaw_absCont_Q K c d))
+  have hall₂ : (∑ c, ∑ d,
+      pairMass K c d * KL (overlapLaw K c d) (K.Q d)) = K.Sinfo := by
+    rw [Sinfo_eq_sum_KL K, sum_comm]
+    apply sum_congr rfl
+    intro c _
+    apply sum_congr rfl
+    intro d _
+    rw [pairMass_comm K d c, overlapLaw_comm K d c]
+  have hA₂ : A₂ ≤ K.Sinfo := by
+    calc
+      A₂ ≤ ∑ c, ∑ d,
+          pairMass K c d * KL (overlapLaw K c d) (K.Q d) := by
+        dsimp [A₂]
+        apply sum_le_sum
+        intro c _
+        exact sum_le_univ_sum_of_nonneg fun d =>
+          mul_nonneg (pairMass_nonneg K c d)
+            (KL_nonneg_local (overlapLaw_isPMF K c d) (Q_isPMF K d)
+              (overlapLaw_absCont_Q_right K c d))
+      _ = K.Sinfo := hall₂
+  have hcost : a * F ≤ A₁ + A₂ := by
+    calc
+      a * F = ∑ c, ∑ d ∈ univ.filter
+          (fun d => c ≠ d ∧ ¬ IsHNear994 K c d), a * pairMass K c d := by
+            dsimp [F]
+            rw [mul_sum]
+            apply sum_congr rfl
+            intro c _
+            rw [mul_sum]
+      _ ≤ ∑ c, ∑ d ∈ univ.filter
+          (fun d => c ≠ d ∧ ¬ IsHNear994 K c d),
+          pairMass K c d *
+            (KL (overlapLaw K c d) (K.Q c) +
+              KL (overlapLaw K c d) (K.Q d)) := by
+            apply sum_le_sum
+            intro c _
+            apply sum_le_sum
+            intro d hd
+            have hfar := (mem_filter.mp hd).2.2
+            simpa [a, mul_comm] using
+              mul_le_mul_of_nonneg_left (far_pair_KL_994 K c d hfar)
+                (pairMass_nonneg K c d)
+      _ = A₁ + A₂ := by
+            dsimp [A₁, A₂]
+            simp_rw [mul_add, sum_add_distrib]
+  have htotal : a * F ≤ 2 * K.Sinfo := by linarith
+  have ha : 0 < a :=
+    div_pos delta994_pos (Real.log_pos one_lt_two)
+  change F ≤ 2 * Real.log 2 / delta994 * K.Sinfo
+  apply (mul_le_mul_iff_of_pos_left ha).mp
+  calc
+    a * F ≤ 2 * K.Sinfo := htotal
+    _ = a * (2 * Real.log 2 / delta994 * K.Sinfo) := by
+      dsimp [a]
+      field_simp [delta994_pos.ne', (Real.log_pos one_lt_two).ne']
+
+/-- **Theorem 9.1 (improved)**: the Hellinger near/far split with the exact
+constants consumed by the `994` seed ledger. -/
+theorem mismatch_charge_994 :
+    K.dMis ≤ D.M / infoFloor994 +
+      2 * Real.log 2 / delta994 * K.Sinfo := by
+  rw [dMis_eq_sum_pairMass K]
+  calc
+    ∑ c, ∑ d ∈ univ.filter (fun d => c ≠ d), pairMass K c d =
+        (∑ c, ∑ d ∈ univ.filter
+          (fun d => c ≠ d ∧ IsHNear994 K c d), pairMass K c d) +
+        ∑ c, ∑ d ∈ univ.filter
+          (fun d => c ≠ d ∧ ¬ IsHNear994 K c d), pairMass K c d := by
+            rw [← sum_add_distrib]
+            apply sum_congr rfl
+            intro c _
+            simp only [sum_filter, ← sum_add_distrib]
+            apply sum_congr rfl
+            intro d _
+            by_cases hcd : c ≠ d
+            · by_cases hn : IsHNear994 K c d <;> simp [hcd, hn]
+            · simp [hcd]
+    _ ≤ D.M / infoFloor994 +
+        2 * Real.log 2 / delta994 * K.Sinfo :=
+      add_le_add (near_charge_994 K) (far_charge_994 K)
+
 
 end stoch_to_det

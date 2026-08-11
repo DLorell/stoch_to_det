@@ -403,37 +403,34 @@ private lemma abs_clip_le {z B : ℝ} (hB : 0 ≤ B) :
     · exact neg_le_self hB
     · exact min_le_left _ _
 
-private lemma le_inv_cube_of_mul_le_rpow_two_thirds {ρ A : ℝ}
-    (hρ : 0 < ρ) (hA : 0 ≤ A) (h : ρ * A ≤ A ^ ((2 : ℝ) / 3)) :
-    A ≤ ρ⁻¹ ^ 3 := by
+/-- The closing step of every self-referential moment bound in §5.2: a hypercontractive
+estimate of the shape `ρ·A ≤ A^p` with `p + 1/n = 1` pins `A ≤ ρ⁻ⁿ`, since the
+missing power `A^{1/n}` is exactly what `ρ` must pay for. Used at `(p,n) = (2/3,3)`
+against Lemma 2.7 and at `(3/4,4)` against Lemma 2.7′. -/
+private lemma le_inv_pow_of_mul_le_rpow {ρ A p : ℝ} {n : ℕ} (hn : n ≠ 0)
+    (hp : p + ((n : ℝ))⁻¹ = 1) (hρ : 0 < ρ) (hA : 0 ≤ A) (h : ρ * A ≤ A ^ p) :
+    A ≤ ρ⁻¹ ^ n := by
   rcases hA.eq_or_lt with rfl | hApos
   · positivity
-  · have hsplit : A = A ^ ((2 : ℝ) / 3) * A ^ ((1 : ℝ) / 3) := by
-      rw [← Real.rpow_add' hApos.le (by norm_num : (2 : ℝ) / 3 + 1 / 3 ≠ 0)]
-      norm_num
-    have hfac : 0 < A ^ ((2 : ℝ) / 3) := Real.rpow_pos_of_pos hApos _
-    have hcancel :
-        A ^ ((2 : ℝ) / 3) * (ρ * A ^ ((1 : ℝ) / 3))
-          ≤ A ^ ((2 : ℝ) / 3) * 1 := by
+  · have hsplit : A = A ^ p * A ^ (((n : ℝ))⁻¹) := by
+      rw [← Real.rpow_add' hApos.le (by rw [hp]; norm_num), hp, Real.rpow_one]
+    have hfac : 0 < A ^ p := Real.rpow_pos_of_pos hApos _
+    have hcancel : A ^ p * (ρ * A ^ (((n : ℝ))⁻¹)) ≤ A ^ p * 1 := by
       calc
-        A ^ ((2 : ℝ) / 3) * (ρ * A ^ ((1 : ℝ) / 3))
-            = ρ * (A ^ ((2 : ℝ) / 3) * A ^ ((1 : ℝ) / 3)) := by ring
+        A ^ p * (ρ * A ^ (((n : ℝ))⁻¹)) = ρ * (A ^ p * A ^ (((n : ℝ))⁻¹)) := by ring
         _ = ρ * A := by rw [← hsplit]
-        _ ≤ A ^ ((2 : ℝ) / 3) := h
-        _ = A ^ ((2 : ℝ) / 3) * 1 := by ring
-    have hroot_mul : ρ * A ^ ((1 : ℝ) / 3) ≤ 1 := by
+        _ ≤ A ^ p := h
+        _ = A ^ p * 1 := by ring
+    have hroot_mul : ρ * A ^ (((n : ℝ))⁻¹) ≤ 1 := by
       have hc := le_of_mul_le_mul_left hcancel hfac
       simpa [mul_comm] using hc
-    have hroot : A ^ ((1 : ℝ) / 3) ≤ ρ⁻¹ := by
-      rw [inv_eq_one_div]
-      apply (le_div_iff₀ hρ).2
-      simpa [mul_comm] using hroot_mul
-    have hcubes : (A ^ ((1 : ℝ) / 3)) ^ 3 ≤ ρ⁻¹ ^ 3 := by
-      exact pow_le_pow_left₀ (Real.rpow_nonneg hA _) hroot 3
-    have hroot_cube : (A ^ ((1 : ℝ) / 3)) ^ 3 = A := by
-      convert Real.rpow_inv_natCast_pow hA (by norm_num : (3 : ℕ) ≠ 0) using 1 <;>
-        norm_num
-    rwa [hroot_cube] at hcubes
+    have hroot : A ^ (((n : ℝ))⁻¹) ≤ ρ⁻¹ := by
+      have hdiv : A ^ (((n : ℝ))⁻¹) ≤ 1 / ρ :=
+        (le_div_iff₀ hρ).2 (by rw [mul_comm]; exact hroot_mul)
+      simpa [one_div] using hdiv
+    have hpows : (A ^ (((n : ℝ))⁻¹)) ^ n ≤ ρ⁻¹ ^ n :=
+      pow_le_pow_left₀ (Real.rpow_nonneg hA _) hroot n
+    rwa [Real.rpow_inv_natCast_pow hA hn] at hpows
 
 private lemma mX_eq_sum (q : α × β → ℝ) (x : α) : mX q x = ∑ y, q (x, y) := by
   change push Prod.fst q x = ∑ y, q (x, y)
@@ -2077,7 +2074,7 @@ private lemma singular_f_moment_three_le {S : Finset (α × β)} {w : α × β �
             (moment_nonneg hqY.nonneg _ _) hg32 (by norm_num : (0 : ℝ) ≤ 2 / 3)
         · exact Real.rpow_nonneg hA0 _
       _ = A ^ ((2 : ℝ) / 3) := mul_one _
-  exact le_inv_cube_of_mul_le_rpow_two_thirds hρ hA0 hmoment
+  exact le_inv_pow_of_mul_le_rpow (by norm_num) (by norm_num) hρ hA0 hmoment
 
 private lemma singular_g_moment_three_le {S : Finset (α × β)} {w : α × β → ℝ}
     (hw : Feasible S w) {q : α × β → ℝ} (hq : IsContact S w q)
@@ -2171,7 +2168,273 @@ private lemma singular_g_moment_three_le {S : Finset (α × β)} {w : α × β �
             (moment_nonneg hqX.nonneg _ _) hf32 (by norm_num : (0 : ℝ) ≤ 2 / 3)
         · exact Real.rpow_nonneg hA0 _
       _ = A ^ ((2 : ℝ) / 3) := one_mul _
-  exact le_inv_cube_of_mul_le_rpow_two_thirds hρ hA0 hmoment
+  exact le_inv_pow_of_mul_le_rpow (by norm_num) (by norm_num) hρ hA0 hmoment
+
+/-- **Fourth moment of the top nontrivial HGR singular vector**: `‖f‖₄ ≤ ρ⁻¹`.
+
+The same self-referential device as `singular_f_moment_three_le`, run against
+Lemma 2.7′ (`contact_hypercontractive_two_four`) instead of Lemma 2.7. It is the
+*cleaner* of the two: `|f|⁴ = f³ · f` needs no sign correction, so no absolute
+value enters until the final pointwise bound.
+
+Against Lemma 2.7 the device closes only at the third moment — testing with
+`F = |f|^k` gives `ρ·E|f|^{k+1} ≤ (E|f|^{3k/2})^{2/3}`, self-referential exactly
+when `3k/2 = k+1`, i.e. `k = 2`. Lemma 2.7′ moves that fixed point to `k = 3`,
+which is the whole source of the improvement in
+`singular_f_moment_three_le_two`. -/
+private lemma singular_f_moment_four_le {S : Finset (α × β)} {w : α × β → ℝ}
+    (hw : Feasible S w) {q : α × β → ℝ} (hq : IsContact S w q)
+    {ρ : ℝ} (hρ : 0 < ρ) {f : α → ℝ} {g : β → ℝ}
+    (hg2 : ∑ y, mY q y * g y ^ 2 = 1)
+    (hrel : ∀ x, (∑ y, q (x, y) * g y) = ρ * (mX q x * f x)) :
+    moment (mX q) 4 f ≤ ρ⁻¹ ^ 4 := by
+  have hqX : IsPMF (mX q) := isPMF_push hq.1
+  have hqY : IsPMF (mY q) := isPMF_push hq.1
+  set A : ℝ := moment (mX q) 4 f with hAdef
+  have hA0 : 0 ≤ A := moment_nonneg hqX.nonneg _ _
+  have habs_four : ∀ x, |f x| ^ (4 : ℝ) = f x ^ 3 * f x := by
+    intro x
+    calc
+      |f x| ^ (4 : ℝ) = |f x| ^ (4 : ℕ) := Real.rpow_ofNat _ _
+      _ = |f x ^ (4 : ℕ)| := by rw [← abs_pow]
+      _ = f x ^ (4 : ℕ) := abs_of_nonneg (by positivity)
+      _ = f x ^ 3 * f x := by ring
+  have heq : ρ * A = ∑ z, q z * f z.1 ^ 3 * g z.2 := by
+    rw [Fintype.sum_prod_type]
+    calc
+      ρ * A = ∑ x, ρ * (mX q x * |f x| ^ (4 : ℝ)) := by
+        dsimp [A, moment]
+        rw [Finset.mul_sum]
+      _ = ∑ x, f x ^ 3 * (ρ * (mX q x * f x)) := by
+        apply Finset.sum_congr rfl
+        intro x _
+        rw [habs_four]
+        ring
+      _ = ∑ x, f x ^ 3 * (∑ y, q (x, y) * g y) := by
+        apply Finset.sum_congr rfl
+        intro x _
+        rw [hrel x]
+      _ = ∑ x, ∑ y, q (x, y) * f x ^ 3 * g y := by
+        apply Finset.sum_congr rfl
+        intro x _
+        rw [Finset.mul_sum]
+        apply Finset.sum_congr rfl
+        intro y _
+        ring
+  have hsigned :
+      (∑ z, q z * f z.1 ^ 3 * g z.2)
+        ≤ ∑ z, q z * (|f z.1| ^ (3 : ℝ)) * |g z.2| := by
+    apply Finset.sum_le_sum
+    intro z _
+    calc
+      q z * f z.1 ^ 3 * g z.2 ≤ q z * |f z.1 ^ 3 * g z.2| := by
+        have hz := mul_le_mul_of_nonneg_left
+          (le_abs_self (f z.1 ^ 3 * g z.2)) (hq.1.nonneg z)
+        simpa [mul_assoc] using hz
+      _ = q z * (|f z.1| ^ (3 : ℝ)) * |g z.2| := by
+        rw [abs_mul, abs_pow, Real.rpow_ofNat]
+        ring
+  have hhc := contact_hypercontractive_two_four hw hq
+    (F := fun x => |f x| ^ (3 : ℝ)) (G := fun y => |g y|)
+    (fun x => Real.rpow_nonneg (abs_nonneg _) _) (fun y => abs_nonneg _)
+  have hhc_all :
+      (∑ z, q z * (|f z.1| ^ (3 : ℝ)) * |g z.2|)
+        ≤ A ^ ((3 : ℝ) / 4) * (moment (mY q) 2 g) ^ ((1 : ℝ) / 2) := by
+    have hsupp := sum_eq_sum_support hq.2.1
+      (fun z => (|f z.1| ^ (3 : ℝ)) * |g z.2|)
+    rw [show (∑ z, q z * (|f z.1| ^ (3 : ℝ)) * |g z.2|) =
+        ∑ z ∈ S, q z * (|f z.1| ^ (3 : ℝ)) * |g z.2| by
+      simpa [mul_assoc] using hsupp]
+    have hpow : ∀ x, (|f x| ^ (3 : ℝ)) ^ ((4 : ℝ) / 3) = |f x| ^ (4 : ℝ) := by
+      intro x
+      rw [← Real.rpow_mul (abs_nonneg _)]
+      norm_num
+    simp_rw [hpow] at hhc
+    simpa [moment, hAdef] using hhc
+  have hg2m : moment (mY q) 2 g = 1 := by
+    rw [moment_two_eq hqY.nonneg]
+    exact hg2
+  have hmoment : ρ * A ≤ A ^ ((3 : ℝ) / 4) := by
+    calc
+      ρ * A = ∑ z, q z * f z.1 ^ 3 * g z.2 := heq
+      _ ≤ ∑ z, q z * (|f z.1| ^ (3 : ℝ)) * |g z.2| := hsigned
+      _ ≤ A ^ ((3 : ℝ) / 4) * (moment (mY q) 2 g) ^ ((1 : ℝ) / 2) := hhc_all
+      _ = A ^ ((3 : ℝ) / 4) := by rw [hg2m]; norm_num
+  exact le_inv_pow_of_mul_le_rpow (by norm_num) (by norm_num) hρ hA0 hmoment
+
+/-- **Third moment, sharpened**: `E|f|³ ≤ ρ⁻²`, a full power of `ρ` better than
+`singular_f_moment_three_le` (they agree only at `ρ = 1`, and every contact has
+`ρ ≤ 1/2`).
+
+Interpolation between the unit second moment and `singular_f_moment_four_le`:
+one weighted Hölder at weight `m·f²`, which has total mass `1` exactly because
+`f` has unit variance. Equivalently `‖f‖₃ ≤ ‖f‖₂^{1/3}‖f‖₄^{2/3} = ρ^{-2/3}`. -/
+private lemma singular_f_moment_three_le_two {S : Finset (α × β)} {w : α × β → ℝ}
+    (hw : Feasible S w) {q : α × β → ℝ} (hq : IsContact S w q)
+    {ρ : ℝ} (hρ : 0 < ρ) {f : α → ℝ} {g : β → ℝ}
+    (hf2 : ∑ x, mX q x * f x ^ 2 = 1) (hg2 : ∑ y, mY q y * g y ^ 2 = 1)
+    (hrel : ∀ x, (∑ y, q (x, y) * g y) = ρ * (mX q x * f x)) :
+    moment (mX q) 3 f ≤ ρ⁻¹ ^ 2 := by
+  have hqX : IsPMF (mX q) := isPMF_push hq.1
+  have hfour := singular_f_moment_four_le hw hq hρ hg2 hrel
+  have hwnn : ∀ x, 0 ≤ mX q x * f x ^ 2 := fun x =>
+    mul_nonneg (hqX.nonneg x) (sq_nonneg _)
+  have hwtotal : (∑ x, mX q x * f x ^ 2) = 1 := hf2
+  have h := Real.inner_le_weight_mul_Lp_of_nonneg (Finset.univ : Finset α)
+    (p := (2 : ℝ)) (by norm_num) (fun x => mX q x * f x ^ 2) (fun x => |f x|)
+    hwnn (fun x => abs_nonneg _)
+  have hleft : (∑ x, mX q x * f x ^ 2 * |f x|) = moment (mX q) 3 f := by
+    unfold moment
+    apply Finset.sum_congr rfl
+    intro x _
+    have hcube : |f x| ^ (3 : ℝ) = f x ^ 2 * |f x| := by
+      calc
+        |f x| ^ (3 : ℝ) = |f x| ^ (3 : ℕ) := Real.rpow_ofNat _ _
+        _ = |f x| ^ 2 * |f x| := by ring
+        _ = f x ^ 2 * |f x| := by rw [sq_abs]
+    rw [hcube, mul_assoc]
+  have hright : (∑ x, mX q x * f x ^ 2 * |f x| ^ (2 : ℝ)) = moment (mX q) 4 f := by
+    unfold moment
+    apply Finset.sum_congr rfl
+    intro x _
+    have hquart : |f x| ^ (4 : ℝ) = f x ^ 2 * |f x| ^ (2 : ℝ) := by
+      rw [show (4 : ℝ) = 2 + 2 by norm_num,
+        Real.rpow_add' (abs_nonneg _) (by norm_num), Real.rpow_two, sq_abs]
+    rw [hquart, mul_assoc]
+  rw [hleft, hright, hwtotal] at h
+  have hstep : moment (mX q) 3 f ≤ (moment (mX q) 4 f) ^ ((1 : ℝ) / 2) := by
+    simpa using h
+  calc
+    moment (mX q) 3 f ≤ (moment (mX q) 4 f) ^ ((1 : ℝ) / 2) := hstep
+    _ ≤ (ρ⁻¹ ^ 4) ^ ((1 : ℝ) / 2) := by
+        exact Real.rpow_le_rpow (moment_nonneg hqX.nonneg _ _) hfour (by norm_num)
+    _ = ρ⁻¹ ^ 2 := by
+        rw [show (ρ⁻¹ : ℝ) ^ 4 = (ρ⁻¹ ^ 2) ^ (2 : ℕ) by ring,
+          ← Real.rpow_natCast (ρ⁻¹ ^ 2) 2, ← Real.rpow_mul (by positivity)]
+        norm_num
+
+/-- `singular_f_moment_four_le` on the other coordinate, against
+`contact_hypercontractive_four_two`. -/
+private lemma singular_g_moment_four_le {S : Finset (α × β)} {w : α × β → ℝ}
+    (hw : Feasible S w) {q : α × β → ℝ} (hq : IsContact S w q)
+    {ρ : ℝ} (hρ : 0 < ρ) {f : α → ℝ} {g : β → ℝ}
+    (hf2 : ∑ x, mX q x * f x ^ 2 = 1)
+    (hrel : ∀ y, (∑ x, q (x, y) * f x) = ρ * (mY q y * g y)) :
+    moment (mY q) 4 g ≤ ρ⁻¹ ^ 4 := by
+  have hqX : IsPMF (mX q) := isPMF_push hq.1
+  have hqY : IsPMF (mY q) := isPMF_push hq.1
+  set A : ℝ := moment (mY q) 4 g with hAdef
+  have hA0 : 0 ≤ A := moment_nonneg hqY.nonneg _ _
+  have habs_four : ∀ y, |g y| ^ (4 : ℝ) = g y ^ 3 * g y := by
+    intro y
+    calc
+      |g y| ^ (4 : ℝ) = |g y| ^ (4 : ℕ) := Real.rpow_ofNat _ _
+      _ = |g y ^ (4 : ℕ)| := by rw [← abs_pow]
+      _ = g y ^ (4 : ℕ) := abs_of_nonneg (by positivity)
+      _ = g y ^ 3 * g y := by ring
+  have heq : ρ * A = ∑ z, q z * f z.1 * g z.2 ^ 3 := by
+    rw [Fintype.sum_prod_type]
+    calc
+      ρ * A = ∑ y, ρ * (mY q y * |g y| ^ (4 : ℝ)) := by
+        dsimp [A, moment]
+        rw [Finset.mul_sum]
+      _ = ∑ y, g y ^ 3 * (ρ * (mY q y * g y)) := by
+        apply Finset.sum_congr rfl
+        intro y _
+        rw [habs_four]
+        ring
+      _ = ∑ y, g y ^ 3 * (∑ x, q (x, y) * f x) := by
+        apply Finset.sum_congr rfl
+        intro y _
+        rw [hrel y]
+      _ = ∑ x, ∑ y, q (x, y) * f x * g y ^ 3 := by
+        rw [Finset.sum_comm]
+        apply Finset.sum_congr rfl
+        intro y _
+        rw [Finset.mul_sum]
+        apply Finset.sum_congr rfl
+        intro x _
+        ring
+  have hsigned :
+      (∑ z, q z * f z.1 * g z.2 ^ 3)
+        ≤ ∑ z, q z * |f z.1| * (|g z.2| ^ (3 : ℝ)) := by
+    apply Finset.sum_le_sum
+    intro z _
+    calc
+      q z * f z.1 * g z.2 ^ 3 ≤ q z * |f z.1 * g z.2 ^ 3| := by
+        have hz := mul_le_mul_of_nonneg_left
+          (le_abs_self (f z.1 * g z.2 ^ 3)) (hq.1.nonneg z)
+        simpa [mul_assoc] using hz
+      _ = q z * |f z.1| * (|g z.2| ^ (3 : ℝ)) := by
+        rw [abs_mul, abs_pow, Real.rpow_ofNat]
+        ring
+  have hhc := contact_hypercontractive_four_two hw hq
+    (F := fun x => |f x|) (G := fun y => |g y| ^ (3 : ℝ))
+    (fun x => abs_nonneg _) (fun y => Real.rpow_nonneg (abs_nonneg _) _)
+  have hhc_all :
+      (∑ z, q z * |f z.1| * (|g z.2| ^ (3 : ℝ)))
+        ≤ (moment (mX q) 2 f) ^ ((1 : ℝ) / 2) * A ^ ((3 : ℝ) / 4) := by
+    have hsupp := sum_eq_sum_support hq.2.1
+      (fun z => |f z.1| * (|g z.2| ^ (3 : ℝ)))
+    rw [show (∑ z, q z * |f z.1| * (|g z.2| ^ (3 : ℝ))) =
+        ∑ z ∈ S, q z * |f z.1| * (|g z.2| ^ (3 : ℝ)) by
+      simpa [mul_assoc] using hsupp]
+    have hpow : ∀ y, (|g y| ^ (3 : ℝ)) ^ ((4 : ℝ) / 3) = |g y| ^ (4 : ℝ) := by
+      intro y
+      rw [← Real.rpow_mul (abs_nonneg _)]
+      norm_num
+    simp_rw [hpow] at hhc
+    simpa [moment, hAdef] using hhc
+  have hf2m : moment (mX q) 2 f = 1 := by
+    rw [moment_two_eq hqX.nonneg]
+    exact hf2
+  have hmoment : ρ * A ≤ A ^ ((3 : ℝ) / 4) := by
+    calc
+      ρ * A = ∑ z, q z * f z.1 * g z.2 ^ 3 := heq
+      _ ≤ ∑ z, q z * |f z.1| * (|g z.2| ^ (3 : ℝ)) := hsigned
+      _ ≤ (moment (mX q) 2 f) ^ ((1 : ℝ) / 2) * A ^ ((3 : ℝ) / 4) := hhc_all
+      _ = A ^ ((3 : ℝ) / 4) := by rw [hf2m]; norm_num
+  exact le_inv_pow_of_mul_le_rpow (by norm_num) (by norm_num) hρ hA0 hmoment
+
+/-- `singular_f_moment_three_le_two` on the other coordinate. -/
+private lemma singular_g_moment_three_le_two {S : Finset (α × β)} {w : α × β → ℝ}
+    (hw : Feasible S w) {q : α × β → ℝ} (hq : IsContact S w q)
+    {ρ : ℝ} (hρ : 0 < ρ) {f : α → ℝ} {g : β → ℝ}
+    (hf2 : ∑ x, mX q x * f x ^ 2 = 1) (hg2 : ∑ y, mY q y * g y ^ 2 = 1)
+    (hrel : ∀ y, (∑ x, q (x, y) * f x) = ρ * (mY q y * g y)) :
+    moment (mY q) 3 g ≤ ρ⁻¹ ^ 2 := by
+  have hqY : IsPMF (mY q) := isPMF_push hq.1
+  have hfour := singular_g_moment_four_le hw hq hρ hf2 hrel
+  have h := Real.inner_le_weight_mul_Lp_of_nonneg (Finset.univ : Finset β)
+    (p := (2 : ℝ)) (by norm_num) (fun y => mY q y * g y ^ 2) (fun y => |g y|)
+    (fun y => mul_nonneg (hqY.nonneg y) (sq_nonneg _)) (fun y => abs_nonneg _)
+  have hleft : (∑ y, mY q y * g y ^ 2 * |g y|) = moment (mY q) 3 g := by
+    unfold moment
+    apply Finset.sum_congr rfl
+    intro y _
+    have hcube : |g y| ^ (3 : ℝ) = g y ^ 2 * |g y| := by
+      calc
+        |g y| ^ (3 : ℝ) = |g y| ^ (3 : ℕ) := Real.rpow_ofNat _ _
+        _ = |g y| ^ 2 * |g y| := by ring
+        _ = g y ^ 2 * |g y| := by rw [sq_abs]
+    rw [hcube, mul_assoc]
+  have hright : (∑ y, mY q y * g y ^ 2 * |g y| ^ (2 : ℝ)) = moment (mY q) 4 g := by
+    unfold moment
+    apply Finset.sum_congr rfl
+    intro y _
+    have hquart : |g y| ^ (4 : ℝ) = g y ^ 2 * |g y| ^ (2 : ℝ) := by
+      rw [show (4 : ℝ) = 2 + 2 by norm_num,
+        Real.rpow_add' (abs_nonneg _) (by norm_num), Real.rpow_two, sq_abs]
+    rw [hquart, mul_assoc]
+  rw [hleft, hright, hg2] at h
+  calc
+    moment (mY q) 3 g ≤ (moment (mY q) 4 g) ^ ((1 : ℝ) / 2) := by simpa using h
+    _ ≤ (ρ⁻¹ ^ 4) ^ ((1 : ℝ) / 2) :=
+        Real.rpow_le_rpow (moment_nonneg hqY.nonneg _ _) hfour (by norm_num)
+    _ = ρ⁻¹ ^ 2 := by
+        rw [show (ρ⁻¹ : ℝ) ^ 4 = (ρ⁻¹ ^ 2) ^ (2 : ℕ) by ring,
+          ← Real.rpow_natCast (ρ⁻¹ ^ 2) 2, ← Real.rpow_mul (by positivity)]
+        norm_num
 
 private lemma singular_product_moment_le {S : Finset (α × β)} {w : α × β → ℝ}
     (hw : Feasible S w) {q : α × β → ℝ} (hq : IsContact S w q)
@@ -3129,6 +3392,266 @@ private lemma ratio_root_smallness_hellinger {q r : α × β → ℝ}
   exact ⟨hX.trans (hellingerSq_mX_le hq hr),
     hY.trans (hellingerSq_mY_le hq hr)⟩
 
+/-- The strengthened quantitative heart using the interpolated L⁴ moment bound:
+`h²(q,q_X tensor q_Y) >= rho^(14/3)/(1+rho^(4/3))^2`. -/
+theorem hellingerSq_product_ge_hgr_two_four {S : Finset (α × β)}
+    {w : α × β → ℝ} (hw : Feasible S w)
+    {q : α × β → ℝ} (hq : IsContact S w q)
+    (hrho : 0 < rhoHGR q) :
+    rhoHGR q ^ ((14 : ℝ) / 3) /
+      (1 + rhoHGR q ^ ((4 : ℝ) / 3)) ^ 2 ≤
+      hellingerSq q (fun z => mX q z.1 * mY q z.2) := by
+  rcases exists_hgr_singular_pair hw hq hrho with
+    ⟨f, g, hf0, hg0, hf2, hg2, hcorr, hrelf, hrelg⟩
+  let Q : α × β → ℝ := fun z => mX q z.1 * mY q z.2
+  let E4 : ℝ := ∑ z, q z * f z.1 ^ 2 * g z.2 ^ 2
+  let EQ4 : ℝ := ∑ z, Q z * f z.1 ^ 2 * g z.2 ^ 2
+  let cross : ℝ := ∑ z,
+    Real.sqrt (q z) * Real.sqrt (Q z) * f z.1 ^ 2 * g z.2 ^ 2
+  let second : ℝ := ∑ z,
+    (Real.sqrt (q z) + Real.sqrt (Q z)) ^ 2 * f z.1 ^ 2 * g z.2 ^ 2
+  have hqX : IsPMF (mX q) := isPMF_push hq.1
+  have hqY : IsPMF (mY q) := isPMF_push hq.1
+  have hQ : IsPMF Q := product_isPMF hqX hqY
+  have hinv0 : 0 ≤ (rhoHGR q)⁻¹ := (inv_pos.mpr hrho).le
+  have hf3 : moment (mX q) 3 f ≤ (rhoHGR q)⁻¹ ^ 2 :=
+    singular_f_moment_three_le_two hw hq hrho hf2 hg2 hrelf
+  have hg3 : moment (mY q) 3 g ≤ (rhoHGR q)⁻¹ ^ 2 :=
+    singular_g_moment_three_le_two hw hq hrho hf2 hg2 hrelg
+  let nf : ℝ := normThree (mX q) f
+  let ng : ℝ := normThree (mY q) g
+  have hnf0 : 0 ≤ nf := normThree_nonneg hqX.nonneg f
+  have hng0 : 0 ≤ ng := normThree_nonneg hqY.nonneg g
+  have hnf3 : nf ^ 3 = moment (mX q) 3 f := by
+    simpa [nf] using normThree_cube hqX.nonneg f
+  have hng3 : ng ^ 3 = moment (mY q) 3 g := by
+    simpa [ng] using normThree_cube hqY.nonneg g
+  let R : ℝ := (rhoHGR q)⁻¹ ^ ((2 : ℝ) / 3)
+  have hR0 : 0 ≤ R := Real.rpow_nonneg hinv0 _
+  have hR3 : R ^ 3 = (rhoHGR q)⁻¹ ^ 2 := by
+    dsimp [R]
+    rw [← Real.rpow_natCast, ← Real.rpow_mul hinv0]
+    norm_num
+  have hnf : nf ≤ R := by
+    apply (pow_le_pow_iff_left₀ hnf0 hR0 (by norm_num : (3 : ℕ) ≠ 0)).mp
+    rw [hnf3, hR3]
+    exact hf3
+  have hng : ng ≤ R := by
+    apply (pow_le_pow_iff_left₀ hng0 hR0 (by norm_num : (3 : ℕ) ≠ 0)).mp
+    rw [hng3, hR3]
+    exact hg3
+  have hE4_nonneg : 0 ≤ E4 := by
+    dsimp [E4]
+    exact Finset.sum_nonneg fun z _ =>
+      mul_nonneg (mul_nonneg (hq.1.nonneg z) (sq_nonneg _)) (sq_nonneg _)
+  have hE4 : E4 ≤ (rhoHGR q)⁻¹ ^ ((8 : ℝ) / 3) := by
+    have hhc := contact_hypercontractive hw hq
+      (f := fun x => f x ^ 2) (g := fun y => g y ^ 2)
+      (fun x => sq_nonneg _) (fun y => sq_nonneg _)
+    have hhc_all : E4 ≤ nf ^ 2 * ng ^ 2 := by
+      have hsupp := sum_eq_sum_support hq.2.1
+        (fun z => f z.1 ^ 2 * g z.2 ^ 2)
+      rw [show E4 = ∑ z ∈ S, q z * f z.1 ^ 2 * g z.2 ^ 2 by
+        simpa [E4, mul_assoc] using hsupp]
+      have hpowf : ∀ x, (f x ^ 2) ^ ((3 : ℝ) / 2) = |f x| ^ (3 : ℝ) := by
+        intro x
+        rw [show f x ^ 2 = |f x| ^ (2 : ℝ) by rw [Real.rpow_two, sq_abs],
+          ← Real.rpow_mul (abs_nonneg _)]
+        norm_num
+      have hpowg : ∀ y, (g y ^ 2) ^ ((3 : ℝ) / 2) = |g y| ^ (3 : ℝ) := by
+        intro y
+        rw [show g y ^ 2 = |g y| ^ (2 : ℝ) by rw [Real.rpow_two, sq_abs],
+          ← Real.rpow_mul (abs_nonneg _)]
+        norm_num
+      simp_rw [hpowf, hpowg] at hhc
+      have hnf2 : (moment (mX q) 3 f) ^ ((2 : ℝ) / 3) = nf ^ 2 := by
+        dsimp [nf, normThree]
+        rw [← Real.rpow_natCast,
+          ← Real.rpow_mul (moment_nonneg hqX.nonneg 3 f)]
+        norm_num
+      have hng2 : (moment (mY q) 3 g) ^ ((2 : ℝ) / 3) = ng ^ 2 := by
+        dsimp [ng, normThree]
+        rw [← Real.rpow_natCast,
+          ← Real.rpow_mul (moment_nonneg hqY.nonneg 3 g)]
+        norm_num
+      have hhc' : (∑ z ∈ S, q z * f z.1 ^ 2 * g z.2 ^ 2) ≤
+          (moment (mX q) 3 f) ^ ((2 : ℝ) / 3) *
+            (moment (mY q) 3 g) ^ ((2 : ℝ) / 3) := by
+        simpa [moment] using hhc
+      rw [hnf2, hng2] at hhc'
+      exact hhc'
+    calc
+      E4 ≤ nf ^ 2 * ng ^ 2 := hhc_all
+      _ ≤ R ^ 2 * R ^ 2 :=
+        mul_le_mul (pow_le_pow_left₀ hnf0 hnf 2) (pow_le_pow_left₀ hng0 hng 2)
+          (sq_nonneg ng) (sq_nonneg _)
+      _ = (rhoHGR q)⁻¹ ^ ((8 : ℝ) / 3) := by
+        rw [← pow_add]
+        norm_num
+        dsimp [R]
+        rw [← Real.rpow_natCast, ← Real.rpow_mul hinv0]
+        norm_num
+  have hEQ4 : EQ4 = 1 := by
+    dsimp [EQ4, Q]
+    rw [Fintype.sum_prod_type]
+    calc
+      (∑ x, ∑ y, (mX q x * mY q y) * f x ^ 2 * g y ^ 2) =
+          ∑ x, (mX q x * f x ^ 2) * (∑ y, mY q y * g y ^ 2) := by
+        apply Finset.sum_congr rfl
+        intro x _
+        rw [Finset.mul_sum]
+        apply Finset.sum_congr rfl
+        intro y _
+        ring
+      _ = (∑ x, mX q x * f x ^ 2) *
+          (∑ y, mY q y * g y ^ 2) := by rw [Finset.sum_mul]
+      _ = 1 := by rw [hf2, hg2]; norm_num
+  have hcross_nonneg : 0 ≤ cross := by
+    dsimp [cross]
+    exact Finset.sum_nonneg fun z _ => by positivity
+  have hcross_sq : cross ^ 2 ≤ E4 * EQ4 := by
+    have hcs := Finset.sum_sq_le_sum_mul_sum_of_sq_le_mul
+      (s := (Finset.univ : Finset (α × β)))
+      (r := fun z => Real.sqrt (q z) * Real.sqrt (Q z) *
+        f z.1 ^ 2 * g z.2 ^ 2)
+      (f := fun z => q z * f z.1 ^ 2 * g z.2 ^ 2)
+      (g := fun z => Q z * f z.1 ^ 2 * g z.2 ^ 2)
+      (fun z _ =>
+        mul_nonneg (mul_nonneg (hq.1.nonneg z) (sq_nonneg _)) (sq_nonneg _))
+      (fun z _ =>
+        mul_nonneg (mul_nonneg (hQ.nonneg z) (sq_nonneg _)) (sq_nonneg _))
+      (fun z _ => by
+        have heq :
+          (Real.sqrt (q z) * Real.sqrt (Q z) * f z.1 ^ 2 * g z.2 ^ 2) ^ 2 =
+              (Real.sqrt (q z) ^ 2 * f z.1 ^ 2 * g z.2 ^ 2) *
+                (Real.sqrt (Q z) ^ 2 * f z.1 ^ 2 * g z.2 ^ 2) := by ring
+        have heq' :
+            (Real.sqrt (Q z) ^ 2 * f z.1 ^ 2 * g z.2 ^ 2) =
+              Q z * f z.1 ^ 2 * g z.2 ^ 2 := by
+          rw [Real.sq_sqrt (hQ.nonneg z)]
+        rw [heq, Real.sq_sqrt (hq.1.nonneg z), heq'])
+    simpa [cross, E4, EQ4] using hcs
+  have hcross : cross ≤ (rhoHGR q)⁻¹ ^ ((4 : ℝ) / 3) := by
+    have hbound_sq : cross ^ 2 ≤
+        ((rhoHGR q)⁻¹ ^ ((4 : ℝ) / 3)) ^ 2 := by
+      rw [hEQ4, mul_one] at hcross_sq
+      calc
+        cross ^ 2 ≤ E4 := hcross_sq
+        _ ≤ (rhoHGR q)⁻¹ ^ ((8 : ℝ) / 3) := hE4
+        _ = ((rhoHGR q)⁻¹ ^ ((4 : ℝ) / 3)) ^ 2 := by
+          rw [← Real.rpow_natCast, ← Real.rpow_mul hinv0]
+          norm_num
+    exact (pow_le_pow_iff_left₀ hcross_nonneg (Real.rpow_nonneg hinv0 _)
+      (by norm_num : (2 : ℕ) ≠ 0)).mp hbound_sq
+  have hsecond_expand : second = E4 + EQ4 + 2 * cross := by
+    calc
+      second = ∑ z, (q z * f z.1 ^ 2 * g z.2 ^ 2 +
+          Q z * f z.1 ^ 2 * g z.2 ^ 2 +
+          2 * (Real.sqrt (q z) * Real.sqrt (Q z) *
+            f z.1 ^ 2 * g z.2 ^ 2)) := by
+        dsimp [second]
+        apply Finset.sum_congr rfl
+        intro z _
+        calc
+          (Real.sqrt (q z) + Real.sqrt (Q z)) ^ 2 *
+              f z.1 ^ 2 * g z.2 ^ 2 =
+              (Real.sqrt (q z) ^ 2 + Real.sqrt (Q z) ^ 2 +
+                2 * (Real.sqrt (q z) * Real.sqrt (Q z))) *
+                  f z.1 ^ 2 * g z.2 ^ 2 := by ring
+          _ = q z * f z.1 ^ 2 * g z.2 ^ 2 +
+              Q z * f z.1 ^ 2 * g z.2 ^ 2 +
+              2 * (Real.sqrt (q z) * Real.sqrt (Q z) *
+                f z.1 ^ 2 * g z.2 ^ 2) := by
+            rw [Real.sq_sqrt (hq.1.nonneg z), Real.sq_sqrt (hQ.nonneg z)]
+            ring
+      _ = E4 + EQ4 + 2 * cross := by
+        dsimp [E4, EQ4, cross]
+        rw [Finset.sum_add_distrib, Finset.sum_add_distrib, ← Finset.mul_sum]
+  have hpow84 : (rhoHGR q)⁻¹ ^ ((8 : ℝ) / 3) =
+      ((rhoHGR q)⁻¹ ^ ((4 : ℝ) / 3)) ^ 2 := by
+    rw [← Real.rpow_natCast, ← Real.rpow_mul hinv0]
+    norm_num
+  have hsecond : second ≤ ((rhoHGR q)⁻¹ ^ ((4 : ℝ) / 3) + 1) ^ 2 := by
+    rw [hsecond_expand, hEQ4]
+    rw [hpow84] at hE4
+    nlinarith
+  have hsecond_nonneg : 0 ≤ second := by
+    dsimp [second]
+    exact Finset.sum_nonneg fun z _ => by positivity
+  have hQfg : ∑ z, Q z * f z.1 * g z.2 = 0 := by
+    dsimp [Q]
+    rw [Fintype.sum_prod_type]
+    calc
+      (∑ x, ∑ y, (mX q x * mY q y) * f x * g y) =
+          ∑ x, (mX q x * f x) * (∑ y, mY q y * g y) := by
+        apply Finset.sum_congr rfl
+        intro x _
+        rw [Finset.mul_sum]
+        apply Finset.sum_congr rfl
+        intro y _
+        ring
+      _ = 0 := by rw [hg0]; simp
+  have hfactor_sum :
+      (∑ z, (Real.sqrt (q z) - Real.sqrt (Q z)) *
+        (Real.sqrt (q z) + Real.sqrt (Q z)) * f z.1 * g z.2) =
+        rhoHGR q := by
+    calc
+      _ = ∑ z, (q z * f z.1 * g z.2 - Q z * f z.1 * g z.2) := by
+        apply Finset.sum_congr rfl
+        intro z _
+        calc
+          (Real.sqrt (q z) - Real.sqrt (Q z)) *
+              (Real.sqrt (q z) + Real.sqrt (Q z)) * f z.1 * g z.2 =
+              (Real.sqrt (q z) ^ 2 - Real.sqrt (Q z) ^ 2) *
+                f z.1 * g z.2 := by ring
+          _ = q z * f z.1 * g z.2 - Q z * f z.1 * g z.2 := by
+            rw [Real.sq_sqrt (hq.1.nonneg z), Real.sq_sqrt (hQ.nonneg z)]
+            ring
+      _ = (∑ z, q z * f z.1 * g z.2) -
+          ∑ z, Q z * f z.1 * g z.2 := by rw [Finset.sum_sub_distrib]
+      _ = rhoHGR q := by rw [hcorr, hQfg, sub_zero]
+  have hcs_main : rhoHGR q ^ 2 ≤ hellingerSq q Q * second := by
+    have hcs := Finset.sum_sq_le_sum_mul_sum_of_sq_le_mul
+      (s := (Finset.univ : Finset (α × β)))
+      (r := fun z => (Real.sqrt (q z) - Real.sqrt (Q z)) *
+        (Real.sqrt (q z) + Real.sqrt (Q z)) * f z.1 * g z.2)
+      (f := fun z => (Real.sqrt (q z) - Real.sqrt (Q z)) ^ 2)
+      (g := fun z => (Real.sqrt (q z) + Real.sqrt (Q z)) ^ 2 *
+        f z.1 ^ 2 * g z.2 ^ 2)
+      (fun z _ => sq_nonneg _) (fun z _ => by positivity)
+      (fun z _ => by ring_nf; exact le_rfl)
+    rw [hfactor_sum] at hcs
+    simpa [hellingerSq, second] using hcs
+  have hcs_bound : rhoHGR q ^ 2 ≤
+      hellingerSq q Q * ((rhoHGR q)⁻¹ ^ ((4 : ℝ) / 3) + 1) ^ 2 := by
+    exact hcs_main.trans (mul_le_mul_of_nonneg_left hsecond
+      (hellingerSq_nonneg q Q))
+  let s : ℝ := rhoHGR q ^ ((4 : ℝ) / 3)
+  have hspos : 0 < s := Real.rpow_pos_of_pos hrho _
+  have hinvpow : (rhoHGR q)⁻¹ ^ ((4 : ℝ) / 3) = s⁻¹ := by
+    dsimp [s]
+    exact Real.inv_rpow hrho.le _
+  have hscaled : rhoHGR q ^ ((14 : ℝ) / 3) ≤
+      hellingerSq q Q * (1 + s) ^ 2 := by
+    have hmul := mul_le_mul_of_nonneg_right hcs_bound (sq_nonneg s)
+    rw [hinvpow] at hmul
+    have hleft : rhoHGR q ^ 2 * s ^ 2 = rhoHGR q ^ ((14 : ℝ) / 3) := by
+      dsimp [s]
+      rw [← Real.rpow_natCast, ← Real.rpow_natCast,
+        ← Real.rpow_mul hrho.le, ← Real.rpow_add hrho]
+      norm_num
+    have hright :
+        (((s⁻¹ + 1) ^ 2) * s ^ 2) = (1 + s) ^ 2 := by
+      field_simp [hspos.ne']
+    calc
+      rhoHGR q ^ ((14 : ℝ) / 3) = rhoHGR q ^ 2 * s ^ 2 := hleft.symm
+      _ ≤ hellingerSq q Q * ((s⁻¹ + 1) ^ 2 * s ^ 2) := by
+        simpa [mul_assoc] using hmul
+      _ = hellingerSq q Q * (1 + s) ^ 2 := by rw [hright]
+  apply (div_le_iff₀ (sq_pos_of_pos (by positivity : 0 < 1 + s))).2
+  simpa [s, mul_comm] using hscaled
+
+
 /-- The quantitative heart of the improved HGR argument:
 `h²(q,q_X tensor q_Y) >= rho^6/(1+rho^2)^2`. -/
 private theorem hellingerSq_product_ge_hgr {S : Finset (α × β)}
@@ -3394,7 +3917,7 @@ private lemma BC_product_pos {q : α × β → ℝ} (hq : IsPMF q) :
   · refine ⟨z, Finset.mem_univ z, Real.sqrt_pos.2 ?_⟩
     exact mul_pos hz (mul_pos (hz.trans_le hxle) (hz.trans_le hyle))
 
-private lemma hellinger_floor_to_Ixy {q : α × β → ℝ} (hq : IsPMF q)
+lemma hellinger_floor_to_Ixy {q : α × β → ℝ} (hq : IsPMF q)
     {c : ℝ} (hc0 : 0 ≤ c) (hc2 : c < 2)
     (hc : c ≤ hellingerSq q (fun z => mX q z.1 * mY q z.2)) :
     -2 * lg (1 - c / 2) ≤ Ixy q := by
@@ -3527,12 +4050,15 @@ private lemma value_eq_zero_of_weighted_sq_sum_eq_zero
   nlinarith [sq_nonneg (f i)]
 
 /- The `q`-oriented half of the exact-secant rigidity argument. -/
-private theorem rho1771_le_rhoHGR_of_contacts
+theorem rhoThreshold_le_rhoHGR_of_contacts
+    {eta delta rho : ℝ}
+    (heta : 0 < eta) (hdelta : delta = eta ^ 3)
+    (hrho : rho = 1 / 2 - eta ^ 2) (heta_small : 2 * eta ^ 2 < 1)
     {S : Finset (α × β)} {w q r : α × β → ℝ}
     (hw : Feasible S w) (hq : IsContact S w q) (hr : IsContact S w r)
     (hqs : support q = S) (hrs : support r = S) (hne : q ≠ r)
-    (hclose : hellingerSq q r ≤ delta1771) :
-    rho1771 ≤ rhoHGR q := by
+    (hclose : hellingerSq q r ≤ delta) :
+    rho ≤ rhoHGR q := by
   let f : α → ℝ := fun x =>
     (mX r x / mX q x) ^ ((1 : ℝ) / 3) - 1
   let g : β → ℝ := fun y =>
@@ -3570,37 +4096,35 @@ private theorem rho1771_le_rhoHGR_of_contacts
     normThree_cube hqX.nonneg f
   have hagcube : ag ^ 3 = moment (mY q) 3 g :=
     normThree_cube hqY.nonneg g
-  have haf3 : af ^ 3 ≤ eta1771 ^ 3 := by
+  have haf3 : af ^ 3 ≤ eta ^ 3 := by
     rw [hafcube]
-    exact hsmall.1.trans (hclose.trans_eq delta1771_eq)
-  have hag3 : ag ^ 3 ≤ eta1771 ^ 3 := by
+    exact hsmall.1.trans (hclose.trans_eq hdelta)
+  have hag3 : ag ^ 3 ≤ eta ^ 3 := by
     rw [hagcube]
-    exact hsmall.2.trans (hclose.trans_eq delta1771_eq)
-  have haf_le : af ≤ eta1771 := by
-    exact (pow_le_pow_iff_left₀ haf0 eta1771_pos.le
+    exact hsmall.2.trans (hclose.trans_eq hdelta)
+  have haf_le : af ≤ eta := by
+    exact (pow_le_pow_iff_left₀ haf0 heta.le
       (by norm_num : (3 : ℕ) ≠ 0)).mp haf3
-  have hag_le : ag ≤ eta1771 := by
-    exact (pow_le_pow_iff_left₀ hag0 eta1771_pos.le
+  have hag_le : ag ≤ eta := by
+    exact (pow_le_pow_iff_left₀ hag0 heta.le
       (by norm_num : (3 : ℕ) ≠ 0)).mp hag3
   have ha0 : 0 ≤ a := normTwo_nonneg hqX.nonneg f
   have hb0 : 0 ≤ b := normTwo_nonneg hqY.nonneg g
-  have ha_le : a ≤ eta1771 := (normTwo_le_normThree hqX f).trans haf_le
-  have hb_le : b ≤ eta1771 := (normTwo_le_normThree hqY g).trans hag_le
+  have ha_le : a ≤ eta := (normTwo_le_normThree hqX f).trans haf_le
+  have hb_le : b ≤ eta := (normTwo_le_normThree hqY g).trans hag_le
   have ha_sq : a ^ 2 = A := by
     rw [normTwo_sq hqX.nonneg, moment_two_eq hqX.nonneg]
   have hb_sq : b ^ 2 = B := by
     rw [normTwo_sq hqY.nonneg, moment_two_eq hqY.nonneg]
-  have hA_le : A ≤ eta1771 ^ 2 := by
+  have hA_le : A ≤ eta ^ 2 := by
     rw [← ha_sq]
     exact pow_le_pow_left₀ ha0 ha_le 2
-  have hB_le : B ≤ eta1771 ^ 2 := by
+  have hB_le : B ≤ eta ^ 2 := by
     rw [← hb_sq]
     exact pow_le_pow_left₀ hb0 hb_le 2
-  have hAB_le : A + B ≤ 2 * eta1771 ^ 2 := by linarith
+  have hAB_le : A + B ≤ 2 * eta ^ 2 := by linarith
   have hAB_lt_one : A + B < 1 := by
-    have heta : 2 * eta1771 ^ 2 < 1 := by
-      norm_num [eta1771_eq]
-    exact hAB_le.trans_lt heta
+    exact hAB_le.trans_lt heta_small
   have hsec :
       (∀ x, mX q x * f x =
         2 * (∑ y, q (x, y) * g y) + ∑ y, q (x, y) * g y ^ 2) ∧
@@ -3986,10 +4510,20 @@ private theorem rho1771_le_rhoHGR_of_contacts
   have hwitness := correlation_le_rhoHGR hq.1 hfn0 hgn0 hfn2 hgn2
   rw [hcorr_norm] at hwitness
   calc
-    rho1771 = 1 / 2 - eta1771 ^ 2 := rho1771_eq
+    rho = 1 / 2 - eta ^ 2 := hrho
     _ ≤ (1 - A - B) / 2 := by linarith [hAB_le]
     _ ≤ Γ / (a₀ * b₀) := hcorr_lower
     _ ≤ rhoHGR q := hwitness
+
+
+private theorem rho1771_le_rhoHGR_of_contacts
+    {S : Finset (α × β)} {w q r : α × β → ℝ}
+    (hw : Feasible S w) (hq : IsContact S w q) (hr : IsContact S w r)
+    (hqs : support q = S) (hrs : support r = S) (hne : q ≠ r)
+    (hclose : hellingerSq q r ≤ delta1771) :
+    rho1771 ≤ rhoHGR q := by
+  apply rhoThreshold_le_rhoHGR_of_contacts eta1771_pos delta1771_eq
+    rho1771_eq (by norm_num [eta1771_eq]) hw hq hr hqs hrs hne hclose
 
 private lemma hgr_hellinger_fraction_mono {a b : ℝ}
     (ha0 : 0 ≤ a) (hab : a ≤ b) :
