@@ -1,5 +1,6 @@
 import stoch_to_det.ConstantBound1771
 import stoch_to_det.Constants994
+import stoch_to_det.Main994
 
 namespace stoch_to_det
 
@@ -106,5 +107,20 @@ theorem KD994_lt_993 : KD994 < (993 : ℝ) := by
     nlinarith [KS994_lt_bar, six_KSbar994_add_two_lt_993]
   unfold KD994
   exact (max_lt_iff).2 ⟨hM, hS⟩
+
+
+/-- Rounded finite-latent theorem from the strengthened moment floor. -/
+theorem T_le_994
+    {α β : Type*} [Fintype α] [Fintype β]
+    [DecidableEq α] [DecidableEq β]
+    {p : α × β → ℝ} (hp : IsPMF p) :
+    T p ≤ (994 : ℝ) * tau p := by
+  have hCdagger : Cdagger994 < (994 : ℝ) := by
+    unfold Cdagger994
+    linarith [KD994_lt_993]
+  calc
+    T p ≤ Cdagger994 * tau p := T_le_Cdagger994 hp
+    _ ≤ (994 : ℝ) * tau p :=
+      mul_le_mul_of_nonneg_right hCdagger.le (tau_nonneg p)
 
 end stoch_to_det

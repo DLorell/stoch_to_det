@@ -2079,6 +2079,225 @@ theorem contact_hypercontractive {S : Finset (α × β)} {w : α × β → ℝ} 
       exact (div_le_one
         (mul_pos (Real.rpow_pos_of_pos hApos _) (Real.rpow_pos_of_pos hBpos _))).mp hfeas
 
+/-- **Lemma 2.7′** (interpolated contact hypercontractivity):
+`E_q[F(X) G(Y)] ≤ ‖F‖_{L^{4/3}(q_X)} ‖G‖_{L²(q_Y)}` for `F, G ≥ 0`.
+
+Dually this is `‖T‖_{L²(q_Y) → L⁴(q_X)} ≤ 1`, the Riesz–Thorin midpoint between
+Lemma 2.7 (the `(3/2, 3/2)` pair) and the trivial `‖T‖_{∞→∞} ≤ 1`. It is reached
+here by one Hölder split at the conjugate pair `(4/3, 4)` instead, so no
+interpolation theory is needed: `(3/4)·(8/9) + (1/4)·(4/3) = 1` is the unique
+such split, and Lemma 2.7 applied to `(F^{8/9}, G^{4/3})` has exactly
+`(∑ q_X F^{4/3})^{2/3} (∑ q_Y G²)^{2/3}` on the right, since `(8/9)(3/2) = 4/3`
+and `(4/3)(3/2) = 2`.
+
+This is what lets `singular_f_moment_four_le` close where the `(3/2,3/2)` pair
+closes only at the third moment. -/
+theorem contact_hypercontractive_two_four {S : Finset (α × β)} {w : α × β → ℝ}
+    (hw : Feasible S w) {q : α × β → ℝ} (hq : IsContact S w q) {F : α → ℝ} {G : β → ℝ}
+    (hF : ∀ x, 0 ≤ F x) (hG : ∀ y, 0 ≤ G y) :
+    (∑ z ∈ S, q z * F z.1 * G z.2)
+      ≤ (∑ x, mX q x * F x ^ ((4 : ℝ) / 3)) ^ ((3 : ℝ) / 4)
+        * (∑ y, mY q y * G y ^ (2 : ℝ)) ^ ((1 : ℝ) / 2) := by
+  have hqnn := hq.1.nonneg
+  have hqX : IsPMF (mX q) := isPMF_push hq.1
+  have hqY : IsPMF (mY q) := isPMF_push hq.1
+  set R : ℝ := ∑ x, mX q x * F x ^ ((4 : ℝ) / 3) with hRdef
+  set T : ℝ := ∑ y, mY q y * G y ^ (2 : ℝ) with hTdef
+  set P : ℝ := ∑ z ∈ S, q z * F z.1 ^ ((8 : ℝ) / 9) * G z.2 ^ ((4 : ℝ) / 3) with hPdef
+  have hRnn : 0 ≤ R := Finset.sum_nonneg fun x _ =>
+    mul_nonneg (hqX.nonneg x) (Real.rpow_nonneg (hF x) _)
+  have hTnn : 0 ≤ T := Finset.sum_nonneg fun y _ =>
+    mul_nonneg (hqY.nonneg y) (Real.rpow_nonneg (hG y) _)
+  have hPnn : 0 ≤ P := Finset.sum_nonneg fun z _ =>
+    mul_nonneg (mul_nonneg (hqnn z) (Real.rpow_nonneg (hF z.1) _))
+      (Real.rpow_nonneg (hG z.2) _)
+  -- The tail factor of the Hölder split is `R` itself.
+  have hRsupp : (∑ z ∈ S, q z * F z.1 ^ ((4 : ℝ) / 3)) = R := by
+    have hfull : (∑ z, q z * F z.1 ^ ((4 : ℝ) / 3))
+        = ∑ z ∈ S, q z * F z.1 ^ ((4 : ℝ) / 3) := by
+      symm
+      apply Finset.sum_subset (Finset.subset_univ S)
+      intro z _ hz
+      simp [hq.2.1 z hz]
+    rw [← hfull, hRdef]
+    exact (sum_push_mul Prod.fst q fun x => F x ^ ((4 : ℝ) / 3)).symm
+  -- Step 1: Hölder at the conjugate pair `(4/3, 4)`.
+  have hholder : (∑ z ∈ S, q z * F z.1 * G z.2) ≤ P ^ ((3 : ℝ) / 4) * R ^ ((1 : ℝ) / 4) := by
+    have hpq : Real.HolderConjugate ((4 : ℝ) / 3) 4 :=
+      Real.holderConjugate_iff.mpr ⟨by norm_num, by norm_num⟩
+    have h := Real.inner_le_Lp_mul_Lq S
+      (fun z : α × β => q z ^ ((3 : ℝ) / 4) * F z.1 ^ ((2 : ℝ) / 3) * G z.2)
+      (fun z : α × β => q z ^ ((1 : ℝ) / 4) * F z.1 ^ ((1 : ℝ) / 3)) hpq
+    have hprod : ∀ z : α × β,
+        (q z ^ ((3 : ℝ) / 4) * F z.1 ^ ((2 : ℝ) / 3) * G z.2)
+          * (q z ^ ((1 : ℝ) / 4) * F z.1 ^ ((1 : ℝ) / 3)) = q z * F z.1 * G z.2 := by
+      intro z
+      have hq' : q z ^ ((3 : ℝ) / 4) * q z ^ ((1 : ℝ) / 4) = q z := by
+        rw [← Real.rpow_add' (hqnn z) (by norm_num)]
+        norm_num
+      have hF' : F z.1 ^ ((2 : ℝ) / 3) * F z.1 ^ ((1 : ℝ) / 3) = F z.1 := by
+        rw [← Real.rpow_add' (hF z.1) (by norm_num)]
+        norm_num
+      calc (q z ^ ((3 : ℝ) / 4) * F z.1 ^ ((2 : ℝ) / 3) * G z.2)
+            * (q z ^ ((1 : ℝ) / 4) * F z.1 ^ ((1 : ℝ) / 3))
+          = (q z ^ ((3 : ℝ) / 4) * q z ^ ((1 : ℝ) / 4))
+              * (F z.1 ^ ((2 : ℝ) / 3) * F z.1 ^ ((1 : ℝ) / 3)) * G z.2 := by ring
+        _ = q z * F z.1 * G z.2 := by rw [hq', hF']
+    have hleft : ∀ z : α × β,
+        |q z ^ ((3 : ℝ) / 4) * F z.1 ^ ((2 : ℝ) / 3) * G z.2| ^ ((4 : ℝ) / 3)
+          = q z * F z.1 ^ ((8 : ℝ) / 9) * G z.2 ^ ((4 : ℝ) / 3) := by
+      intro z
+      rw [abs_of_nonneg (mul_nonneg (mul_nonneg (Real.rpow_nonneg (hqnn z) _)
+        (Real.rpow_nonneg (hF z.1) _)) (hG z.2)),
+        Real.mul_rpow (mul_nonneg (Real.rpow_nonneg (hqnn z) _)
+          (Real.rpow_nonneg (hF z.1) _)) (hG z.2),
+        Real.mul_rpow (Real.rpow_nonneg (hqnn z) _) (Real.rpow_nonneg (hF z.1) _),
+        ← Real.rpow_mul (hqnn z), ← Real.rpow_mul (hF z.1)]
+      norm_num
+    have hright : ∀ z : α × β,
+        |q z ^ ((1 : ℝ) / 4) * F z.1 ^ ((1 : ℝ) / 3)| ^ (4 : ℝ)
+          = q z * F z.1 ^ ((4 : ℝ) / 3) := by
+      intro z
+      rw [abs_of_nonneg (mul_nonneg (Real.rpow_nonneg (hqnn z) _)
+        (Real.rpow_nonneg (hF z.1) _)),
+        Real.mul_rpow (Real.rpow_nonneg (hqnn z) _) (Real.rpow_nonneg (hF z.1) _),
+        ← Real.rpow_mul (hqnn z), ← Real.rpow_mul (hF z.1)]
+      norm_num
+    simp only [hprod, hleft, hright] at h
+    calc (∑ z ∈ S, q z * F z.1 * G z.2)
+        ≤ P ^ (1 / ((4 : ℝ) / 3)) * R ^ (1 / (4 : ℝ)) := by
+          rw [← hRsupp]; simpa [hPdef, hRsupp] using h
+      _ = P ^ ((3 : ℝ) / 4) * R ^ ((1 : ℝ) / 4) := by norm_num
+  -- Step 2: Lemma 2.7 on the tilted pair `(F^{8/9}, G^{4/3})`.
+  have hP : P ≤ R ^ ((2 : ℝ) / 3) * T ^ ((2 : ℝ) / 3) := by
+    have h := contact_hypercontractive hw hq
+      (f := fun x => F x ^ ((8 : ℝ) / 9)) (g := fun y => G y ^ ((4 : ℝ) / 3))
+      (fun x => Real.rpow_nonneg (hF x) _) (fun y => Real.rpow_nonneg (hG y) _)
+    have hFpow : ∀ x, (F x ^ ((8 : ℝ) / 9)) ^ ((3 : ℝ) / 2) = F x ^ ((4 : ℝ) / 3) := by
+      intro x; rw [← Real.rpow_mul (hF x)]; norm_num
+    have hGpow : ∀ y, (G y ^ ((4 : ℝ) / 3)) ^ ((3 : ℝ) / 2) = G y ^ (2 : ℝ) := by
+      intro y; rw [← Real.rpow_mul (hG y)]; norm_num
+    simp only [hFpow, hGpow] at h
+    exact h
+  -- Step 3: combine, using `R^{1/2} · T^{1/2} · R^{1/4} = R^{3/4} · T^{1/2}`.
+  refine hholder.trans ?_
+  have hmono : P ^ ((3 : ℝ) / 4) ≤ R ^ ((1 : ℝ) / 2) * T ^ ((1 : ℝ) / 2) := by
+    have h := Real.rpow_le_rpow hPnn hP (by norm_num : (0 : ℝ) ≤ 3 / 4)
+    rwa [Real.mul_rpow (Real.rpow_nonneg hRnn _) (Real.rpow_nonneg hTnn _),
+      ← Real.rpow_mul hRnn, ← Real.rpow_mul hTnn,
+      show (2 : ℝ) / 3 * ((3 : ℝ) / 4) = 1 / 2 by norm_num] at h
+  calc P ^ ((3 : ℝ) / 4) * R ^ ((1 : ℝ) / 4)
+      ≤ (R ^ ((1 : ℝ) / 2) * T ^ ((1 : ℝ) / 2)) * R ^ ((1 : ℝ) / 4) := by
+        gcongr
+    _ = R ^ ((3 : ℝ) / 4) * T ^ ((1 : ℝ) / 2) := by
+        rw [show R ^ ((1 : ℝ) / 2) * T ^ ((1 : ℝ) / 2) * R ^ ((1 : ℝ) / 4)
+              = R ^ ((1 : ℝ) / 2) * R ^ ((1 : ℝ) / 4) * T ^ ((1 : ℝ) / 2) by ring,
+          ← Real.rpow_add' hRnn (by norm_num : (1 : ℝ) / 2 + 1 / 4 ≠ 0)]
+        norm_num
+
+/-- **Lemma 2.7′, mirrored**: `E_q[F(X) G(Y)] ≤ ‖F‖_{L²(q_X)} ‖G‖_{L^{4/3}(q_Y)}`.
+
+Lemma 2.7 is symmetric in its two arguments but Lemma 2.7′ is not, so §5.2 needs
+both orientations; this is `contact_hypercontractive_two_four` with the roles of
+the two coordinates exchanged, i.e. the tilt `(F^{4/3}, G^{8/9})` rather than
+`(F^{8/9}, G^{4/3})`. -/
+theorem contact_hypercontractive_four_two {S : Finset (α × β)} {w : α × β → ℝ}
+    (hw : Feasible S w) {q : α × β → ℝ} (hq : IsContact S w q) {F : α → ℝ} {G : β → ℝ}
+    (hF : ∀ x, 0 ≤ F x) (hG : ∀ y, 0 ≤ G y) :
+    (∑ z ∈ S, q z * F z.1 * G z.2)
+      ≤ (∑ x, mX q x * F x ^ (2 : ℝ)) ^ ((1 : ℝ) / 2)
+        * (∑ y, mY q y * G y ^ ((4 : ℝ) / 3)) ^ ((3 : ℝ) / 4) := by
+  have hqnn := hq.1.nonneg
+  have hqX : IsPMF (mX q) := isPMF_push hq.1
+  have hqY : IsPMF (mY q) := isPMF_push hq.1
+  set R : ℝ := ∑ y, mY q y * G y ^ ((4 : ℝ) / 3) with hRdef
+  set T : ℝ := ∑ x, mX q x * F x ^ (2 : ℝ) with hTdef
+  set P : ℝ := ∑ z ∈ S, q z * F z.1 ^ ((4 : ℝ) / 3) * G z.2 ^ ((8 : ℝ) / 9) with hPdef
+  have hRnn : 0 ≤ R := Finset.sum_nonneg fun y _ =>
+    mul_nonneg (hqY.nonneg y) (Real.rpow_nonneg (hG y) _)
+  have hTnn : 0 ≤ T := Finset.sum_nonneg fun x _ =>
+    mul_nonneg (hqX.nonneg x) (Real.rpow_nonneg (hF x) _)
+  have hPnn : 0 ≤ P := Finset.sum_nonneg fun z _ =>
+    mul_nonneg (mul_nonneg (hqnn z) (Real.rpow_nonneg (hF z.1) _))
+      (Real.rpow_nonneg (hG z.2) _)
+  have hRsupp : (∑ z ∈ S, q z * G z.2 ^ ((4 : ℝ) / 3)) = R := by
+    have hfull : (∑ z, q z * G z.2 ^ ((4 : ℝ) / 3))
+        = ∑ z ∈ S, q z * G z.2 ^ ((4 : ℝ) / 3) := by
+      symm
+      apply Finset.sum_subset (Finset.subset_univ S)
+      intro z _ hz
+      simp [hq.2.1 z hz]
+    rw [← hfull, hRdef]
+    exact (sum_push_mul Prod.snd q fun y => G y ^ ((4 : ℝ) / 3)).symm
+  have hholder : (∑ z ∈ S, q z * F z.1 * G z.2) ≤ P ^ ((3 : ℝ) / 4) * R ^ ((1 : ℝ) / 4) := by
+    have hpq : Real.HolderConjugate ((4 : ℝ) / 3) 4 :=
+      Real.holderConjugate_iff.mpr ⟨by norm_num, by norm_num⟩
+    have h := Real.inner_le_Lp_mul_Lq S
+      (fun z : α × β => q z ^ ((3 : ℝ) / 4) * F z.1 * G z.2 ^ ((2 : ℝ) / 3))
+      (fun z : α × β => q z ^ ((1 : ℝ) / 4) * G z.2 ^ ((1 : ℝ) / 3)) hpq
+    have hprod : ∀ z : α × β,
+        (q z ^ ((3 : ℝ) / 4) * F z.1 * G z.2 ^ ((2 : ℝ) / 3))
+          * (q z ^ ((1 : ℝ) / 4) * G z.2 ^ ((1 : ℝ) / 3)) = q z * F z.1 * G z.2 := by
+      intro z
+      have hq' : q z ^ ((3 : ℝ) / 4) * q z ^ ((1 : ℝ) / 4) = q z := by
+        rw [← Real.rpow_add' (hqnn z) (by norm_num)]
+        norm_num
+      have hG' : G z.2 ^ ((2 : ℝ) / 3) * G z.2 ^ ((1 : ℝ) / 3) = G z.2 := by
+        rw [← Real.rpow_add' (hG z.2) (by norm_num)]
+        norm_num
+      calc (q z ^ ((3 : ℝ) / 4) * F z.1 * G z.2 ^ ((2 : ℝ) / 3))
+            * (q z ^ ((1 : ℝ) / 4) * G z.2 ^ ((1 : ℝ) / 3))
+          = (q z ^ ((3 : ℝ) / 4) * q z ^ ((1 : ℝ) / 4)) * F z.1
+              * (G z.2 ^ ((2 : ℝ) / 3) * G z.2 ^ ((1 : ℝ) / 3)) := by ring
+        _ = q z * F z.1 * G z.2 := by rw [hq', hG']
+    have hleft : ∀ z : α × β,
+        |q z ^ ((3 : ℝ) / 4) * F z.1 * G z.2 ^ ((2 : ℝ) / 3)| ^ ((4 : ℝ) / 3)
+          = q z * F z.1 ^ ((4 : ℝ) / 3) * G z.2 ^ ((8 : ℝ) / 9) := by
+      intro z
+      rw [abs_of_nonneg (mul_nonneg (mul_nonneg (Real.rpow_nonneg (hqnn z) _) (hF z.1))
+          (Real.rpow_nonneg (hG z.2) _)),
+        Real.mul_rpow (mul_nonneg (Real.rpow_nonneg (hqnn z) _) (hF z.1))
+          (Real.rpow_nonneg (hG z.2) _),
+        Real.mul_rpow (Real.rpow_nonneg (hqnn z) _) (hF z.1),
+        ← Real.rpow_mul (hqnn z), ← Real.rpow_mul (hG z.2)]
+      norm_num
+    have hright : ∀ z : α × β,
+        |q z ^ ((1 : ℝ) / 4) * G z.2 ^ ((1 : ℝ) / 3)| ^ (4 : ℝ)
+          = q z * G z.2 ^ ((4 : ℝ) / 3) := by
+      intro z
+      rw [abs_of_nonneg (mul_nonneg (Real.rpow_nonneg (hqnn z) _)
+          (Real.rpow_nonneg (hG z.2) _)),
+        Real.mul_rpow (Real.rpow_nonneg (hqnn z) _) (Real.rpow_nonneg (hG z.2) _),
+        ← Real.rpow_mul (hqnn z), ← Real.rpow_mul (hG z.2)]
+      norm_num
+    simp only [hprod, hleft, hright] at h
+    calc (∑ z ∈ S, q z * F z.1 * G z.2)
+        ≤ P ^ (1 / ((4 : ℝ) / 3)) * R ^ (1 / (4 : ℝ)) := by
+          rw [← hRsupp]; simpa [hPdef, hRsupp] using h
+      _ = P ^ ((3 : ℝ) / 4) * R ^ ((1 : ℝ) / 4) := by norm_num
+  have hP : P ≤ T ^ ((2 : ℝ) / 3) * R ^ ((2 : ℝ) / 3) := by
+    have h := contact_hypercontractive hw hq
+      (f := fun x => F x ^ ((4 : ℝ) / 3)) (g := fun y => G y ^ ((8 : ℝ) / 9))
+      (fun x => Real.rpow_nonneg (hF x) _) (fun y => Real.rpow_nonneg (hG y) _)
+    have hFpow : ∀ x, (F x ^ ((4 : ℝ) / 3)) ^ ((3 : ℝ) / 2) = F x ^ (2 : ℝ) := by
+      intro x; rw [← Real.rpow_mul (hF x)]; norm_num
+    have hGpow : ∀ y, (G y ^ ((8 : ℝ) / 9)) ^ ((3 : ℝ) / 2) = G y ^ ((4 : ℝ) / 3) := by
+      intro y; rw [← Real.rpow_mul (hG y)]; norm_num
+    simp only [hFpow, hGpow] at h
+    exact h
+  refine hholder.trans ?_
+  have hmono : P ^ ((3 : ℝ) / 4) ≤ T ^ ((1 : ℝ) / 2) * R ^ ((1 : ℝ) / 2) := by
+    have h := Real.rpow_le_rpow hPnn hP (by norm_num : (0 : ℝ) ≤ 3 / 4)
+    rwa [Real.mul_rpow (Real.rpow_nonneg hTnn _) (Real.rpow_nonneg hRnn _),
+      ← Real.rpow_mul hTnn, ← Real.rpow_mul hRnn,
+      show (2 : ℝ) / 3 * ((3 : ℝ) / 4) = 1 / 2 by norm_num] at h
+  calc P ^ ((3 : ℝ) / 4) * R ^ ((1 : ℝ) / 4)
+      ≤ (T ^ ((1 : ℝ) / 2) * R ^ ((1 : ℝ) / 2)) * R ^ ((1 : ℝ) / 4) := by
+        gcongr
+    _ = T ^ ((1 : ℝ) / 2) * R ^ ((3 : ℝ) / 4) := by
+        rw [mul_assoc, ← Real.rpow_add' hRnn (by norm_num : (1 : ℝ) / 2 + 1 / 4 ≠ 0)]
+        norm_num
+
 /-- **Lemma 2.8(a)** (fusion identity).
 `∑_b θ_b G_w(r_b) − G_w(r) = 3 I(B;Z) − 2 I(B;X) − 2 I(B;Y)`.
 

@@ -99,4 +99,46 @@ private theorem hgr_fraction_14_mono {a b : ℝ}
     (pow_le_pow_left₀ (div_nonneg hA0 (by positivity)) hratio 2)
     (sq_nonneg _) (sq_nonneg _)
 
+
+/-- Distinct near contacts on one connected support obey the strengthened HGR
+and information floors used by the `994` ledger. -/
+theorem nearcollision_floor_hellinger994
+    {α β : Type*} [Fintype α] [Fintype β] [DecidableEq α] [DecidableEq β]
+    {S : Finset (α × β)} {w : α × β → ℝ}
+    (hw : Feasible S w) (hS : IsConnected S)
+    {q r : α × β → ℝ}
+    (hq : IsContact S w q) (hr : IsContact S w r) (hne : q ≠ r)
+    (hnear : hellingerSq q r ≤ delta994) :
+    rho994 ≤ rhoHGR q ∧
+    rho994 ≤ rhoHGR r ∧
+    infoFloor994 ≤ Ixy q ∧
+    infoFloor994 ≤ Ixy r := by
+  have hqs : support q = S := contact_support_eq hw hS hq
+  have hrs : support r = S := contact_support_eq hw hS hr
+  have hqR := rho994_le_rhoHGR_of_contacts
+    hw hq hr hqs hrs hne hnear
+  have hnear_rev : hellingerSq r q ≤ delta994 := by
+    rw [hellingerSq_comm]
+    exact hnear
+  have hrR := rho994_le_rhoHGR_of_contacts
+    hw hr hq hrs hqs hne.symm hnear_rev
+  have hqpos : 0 < rhoHGR q := rho994_pos.trans_le hqR
+  have hrpos : 0 < rhoHGR r := rho994_pos.trans_le hrR
+  have hchi_q : chi994 ≤
+      rhoHGR q ^ ((14 : ℝ) / 3) /
+        (1 + rhoHGR q ^ ((4 : ℝ) / 3)) ^ 2 :=
+    chi994_le_hgr_fraction.trans (hgr_fraction_14_mono rho994_pos hqR)
+  have hchi_r : chi994 ≤
+      rhoHGR r ^ ((14 : ℝ) / 3) /
+        (1 + rhoHGR r ^ ((4 : ℝ) / 3)) ^ 2 :=
+    chi994_le_hgr_fraction.trans (hgr_fraction_14_mono rho994_pos hrR)
+  have hhell_q := hellingerSq_product_ge_hgr_two_four hw hq hqpos
+  have hhell_r := hellingerSq_product_ge_hgr_two_four hw hr hrpos
+  have hIq := hellinger_floor_to_Ixy hq.1 chi994_pos.le chi994_lt_two
+    (hchi_q.trans hhell_q)
+  have hIr := hellinger_floor_to_Ixy hr.1 chi994_pos.le chi994_lt_two
+    (hchi_r.trans hhell_r)
+  exact ⟨hqR, hrR, by simpa [infoFloor994] using hIq,
+    by simpa [infoFloor994] using hIr⟩
+
 end stoch_to_det
