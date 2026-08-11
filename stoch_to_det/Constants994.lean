@@ -18,7 +18,11 @@ def delta994Q : ℚ := eta994Q ^ 3
 def rho994Q : ℚ := 1 / 2 - eta994Q ^ 2
 
 /-- Rational certificate below
-`ρ^(14/3) / (1 + ρ^(4/3))²` at `ρ = rho994Q`. -/
+`ρ^(14/3) / (1 + ρ^(4/3))²` at `ρ = rho994Q`.
+
+This certificate and `eta994Q` are a coupled numerical contract: the floor
+margin is about `3.2e-7`, and the resulting real-valued constant is about
+`993.003`. Retuning either value requires rechecking the literal `994` bound. -/
 def chi994Q : ℚ := 8077 / 1000000
 
 noncomputable def eta994 : ℝ := eta994Q
