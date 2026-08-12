@@ -22,6 +22,7 @@ import stoch_to_det.ConstantBound1771
 import stoch_to_det.GeneralLatent
 import stoch_to_det.JointLatent
 import stoch_to_det.MainTheorems
+import stoch_to_det.Final1336
 
 /-!
 # stoch_to_det — root module
@@ -39,4 +40,7 @@ The three improved public endpoints are declared together in
 rounded deterministic intermediate is `stoch_to_det.LW_sum_1771_joint_deterministic`,
 while `stoch_to_det.LW_sum_1771_joint` has the deliberately weaker conclusion
 `G : Latent p` with no determinism assumption.
+
+The improved finite theorem `stoch_to_det.T_le_698` gives the current best
+certified constant.
 -/
