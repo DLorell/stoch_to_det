@@ -3526,13 +3526,16 @@ private lemma value_eq_zero_of_weighted_sq_sum_eq_zero
   have hmsq : f i ^ 2 = 0 := (mul_eq_zero.mp hterm).resolve_left hmi
   nlinarith [sq_nonneg (f i)]
 
-/- The `q`-oriented half of the exact-secant rigidity argument. -/
-private theorem rho1771_le_rhoHGR_of_contacts
+/-- Parametric `q`-oriented exact-secant rigidity: two distinct contacts with
+common support and squared Hellinger distance at most `η³` force HGR maximal
+correlation at least `1/2 - η²` at the first contact. -/
+theorem rho_le_rhoHGR_of_contacts_param
+    (η : ℝ) (hη : 0 < η) (hη1 : 2 * η ^ 2 < 1)
     {S : Finset (α × β)} {w q r : α × β → ℝ}
     (hw : Feasible S w) (hq : IsContact S w q) (hr : IsContact S w r)
     (hqs : support q = S) (hrs : support r = S) (hne : q ≠ r)
-    (hclose : hellingerSq q r ≤ delta1771) :
-    rho1771 ≤ rhoHGR q := by
+    (hclose : hellingerSq q r ≤ η ^ 3) :
+    1 / 2 - η ^ 2 ≤ rhoHGR q := by
   let f : α → ℝ := fun x =>
     (mX r x / mX q x) ^ ((1 : ℝ) / 3) - 1
   let g : β → ℝ := fun y =>
@@ -3570,37 +3573,35 @@ private theorem rho1771_le_rhoHGR_of_contacts
     normThree_cube hqX.nonneg f
   have hagcube : ag ^ 3 = moment (mY q) 3 g :=
     normThree_cube hqY.nonneg g
-  have haf3 : af ^ 3 ≤ eta1771 ^ 3 := by
+  have haf3 : af ^ 3 ≤ η ^ 3 := by
     rw [hafcube]
-    exact hsmall.1.trans (hclose.trans_eq delta1771_eq)
-  have hag3 : ag ^ 3 ≤ eta1771 ^ 3 := by
+    exact hsmall.1.trans hclose
+  have hag3 : ag ^ 3 ≤ η ^ 3 := by
     rw [hagcube]
-    exact hsmall.2.trans (hclose.trans_eq delta1771_eq)
-  have haf_le : af ≤ eta1771 := by
-    exact (pow_le_pow_iff_left₀ haf0 eta1771_pos.le
+    exact hsmall.2.trans hclose
+  have haf_le : af ≤ η := by
+    exact (pow_le_pow_iff_left₀ haf0 hη.le
       (by norm_num : (3 : ℕ) ≠ 0)).mp haf3
-  have hag_le : ag ≤ eta1771 := by
-    exact (pow_le_pow_iff_left₀ hag0 eta1771_pos.le
+  have hag_le : ag ≤ η := by
+    exact (pow_le_pow_iff_left₀ hag0 hη.le
       (by norm_num : (3 : ℕ) ≠ 0)).mp hag3
   have ha0 : 0 ≤ a := normTwo_nonneg hqX.nonneg f
   have hb0 : 0 ≤ b := normTwo_nonneg hqY.nonneg g
-  have ha_le : a ≤ eta1771 := (normTwo_le_normThree hqX f).trans haf_le
-  have hb_le : b ≤ eta1771 := (normTwo_le_normThree hqY g).trans hag_le
+  have ha_le : a ≤ η := (normTwo_le_normThree hqX f).trans haf_le
+  have hb_le : b ≤ η := (normTwo_le_normThree hqY g).trans hag_le
   have ha_sq : a ^ 2 = A := by
     rw [normTwo_sq hqX.nonneg, moment_two_eq hqX.nonneg]
   have hb_sq : b ^ 2 = B := by
     rw [normTwo_sq hqY.nonneg, moment_two_eq hqY.nonneg]
-  have hA_le : A ≤ eta1771 ^ 2 := by
+  have hA_le : A ≤ η ^ 2 := by
     rw [← ha_sq]
     exact pow_le_pow_left₀ ha0 ha_le 2
-  have hB_le : B ≤ eta1771 ^ 2 := by
+  have hB_le : B ≤ η ^ 2 := by
     rw [← hb_sq]
     exact pow_le_pow_left₀ hb0 hb_le 2
-  have hAB_le : A + B ≤ 2 * eta1771 ^ 2 := by linarith
+  have hAB_le : A + B ≤ 2 * η ^ 2 := by linarith
   have hAB_lt_one : A + B < 1 := by
-    have heta : 2 * eta1771 ^ 2 < 1 := by
-      norm_num [eta1771_eq]
-    exact hAB_le.trans_lt heta
+    exact hAB_le.trans_lt hη1
   have hsec :
       (∀ x, mX q x * f x =
         2 * (∑ y, q (x, y) * g y) + ∑ y, q (x, y) * g y ^ 2) ∧
@@ -3986,10 +3987,20 @@ private theorem rho1771_le_rhoHGR_of_contacts
   have hwitness := correlation_le_rhoHGR hq.1 hfn0 hgn0 hfn2 hgn2
   rw [hcorr_norm] at hwitness
   calc
-    rho1771 = 1 / 2 - eta1771 ^ 2 := rho1771_eq
-    _ ≤ (1 - A - B) / 2 := by linarith [hAB_le]
+    1 / 2 - η ^ 2 ≤ (1 - A - B) / 2 := by linarith [hAB_le]
     _ ≤ Γ / (a₀ * b₀) := hcorr_lower
     _ ≤ rhoHGR q := hwitness
+
+private theorem rho1771_le_rhoHGR_of_contacts
+    {S : Finset (α × β)} {w q r : α × β → ℝ}
+    (hw : Feasible S w) (hq : IsContact S w q) (hr : IsContact S w r)
+    (hqs : support q = S) (hrs : support r = S) (hne : q ≠ r)
+    (hclose : hellingerSq q r ≤ delta1771) :
+    rho1771 ≤ rhoHGR q := by
+  rw [rho1771_eq]
+  exact rho_le_rhoHGR_of_contacts_param eta1771 eta1771_pos
+    (by norm_num [eta1771_eq]) hw hq hr hqs hrs hne
+    (by simpa only [delta1771_eq] using hclose)
 
 private lemma hgr_hellinger_fraction_mono {a b : ℝ}
     (ha0 : 0 ≤ a) (hab : a ≤ b) :

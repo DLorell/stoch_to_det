@@ -6,6 +6,9 @@ The headline declarations are collected in
 - `stoch_to_det.generalized_stoch_to_det_Cdagger1771_joint` <- This is the existence theorem of the finite bound.
 - `stoch_to_det.Cdagger1771_lt_1771` <- This is the theorem which says C <= 1771
 
+The current best certified two-variable endpoint is
+`stoch_to_det.T_le_517`, declared in `stoch_to_det/Final517.lean`.
+
 
 ## Verification
 
