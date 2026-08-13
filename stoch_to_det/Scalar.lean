@@ -23,9 +23,14 @@ posterior `ν`, `C := −E_ν ln R = D(ν ‖ q_g) ≥ 0`. Then:
   `E|N| ≤ 1 + e⁻¹ ≤ 2`, `E|X| ≤ C + 2`, and the max-entropy bound (T4) gives
   `≤ C + ln 8 − γ`. This is the only place `(T4)` — and hence differential
   entropy — is used here.
-* **Diagonal `b = g`.** The golden formula against the
-  reference `Exp(mean p)`, using
-  `D(Exp(mean s) ‖ Exp(mean p)) = ln(p/s) + s/p − 1`. Gives `p·I ≤ 1 − p`.
+* **Diagonal `b = g`.** The baseline golden-formula argument against
+  `Exp(mean p)` gives `p·I ≤ 1 − p`.  The sharper route used by the `270`
+  ledger prices every source clock against `Exp(mean 1)` and retains the
+  pointwise divergence bound
+  `ln(1/s) + s − 1 ≤ (1/4)(1/s − 1)`, yielding
+  `p·I ≤ (1/4)(1 − p)`.  This common-reference refinement was suggested by
+  Alexis Olson; the proof and its integration here are independent Lean
+  formalizations.
 * **Assembly.** The mixture identity
   `∑_b p_{gb} C_{gb} = I(B;Z ∣ C₀=g)` collapses the off-diagonal sum, and
   cluster-level calibration gives `I(B;Z ∣ C₀) = S`, `P(B ≠ C₀) = d`.
@@ -588,6 +593,49 @@ theorem diag_context_arith {P C invR : ℝ} (hP : 0 < P) (hC : 0 ≤ C)
       _ = 1 := by field_simp [hP.ne']
   have hPC : 0 ≤ P * C := mul_nonneg hP.le hC
   nlinarith
+
+/-- The elementary quarter bound behind the improved diagonal reference:
+for `0 < s ≤ 1`, the exponential divergence
+`log (1/s) + s - 1` is at most one quarter of `1/s - 1`.
+
+Writing `x = 1/s`, the gap has derivative
+`(x - 2)² / (4x²)` on `[1,∞)`. -/
+theorem diag_context_quarter_arith {s : ℝ} (hs : 0 < s) (hs1 : s ≤ 1) :
+    Real.log (1 / s) + s - 1 ≤ (1 / 4 : ℝ) * (1 / s - 1) := by
+  let x : ℝ := 1 / s
+  let G : ℝ → ℝ := fun y =>
+    (y - 1) / 4 - (Real.log y + 1 / y - 1)
+  have hx : 1 ≤ x := by
+    dsimp only [x]
+    exact (le_div_iff₀ hs).2 (by simpa using hs1)
+  have hGderiv (y : ℝ) (hy : 0 < y) :
+      HasDerivAt G ((y - 2) ^ 2 / (4 * y ^ 2)) y := by
+    have hraw := (((hasDerivAt_id y).sub_const 1).div_const 4).sub
+      (((Real.hasDerivAt_log hy.ne').add (hasDerivAt_inv hy.ne')).sub_const 1)
+    refine (hraw.congr_of_eventuallyEq ?_).congr_deriv ?_
+    · filter_upwards with z
+      simp only [G, one_div, id_eq, Pi.sub_apply, Pi.add_apply]
+    · field_simp [hy.ne']
+      ring
+  have hGcont : ContinuousOn G (Set.Icc 1 x) := by
+    intro y hy
+    exact (hGderiv y (zero_lt_one.trans_le hy.1)).continuousAt.continuousWithinAt
+  have hGmono : MonotoneOn G (Set.Icc 1 x) := by
+    apply monotoneOn_of_deriv_nonneg (convex_Icc (1 : ℝ) x) hGcont
+    · intro y hy
+      have hy' := interior_subset hy
+      exact (hGderiv y
+        (zero_lt_one.trans_le hy'.1)).differentiableAt.differentiableWithinAt
+    · intro y hy
+      have hy' := interior_subset hy
+      rw [(hGderiv y (zero_lt_one.trans_le hy'.1)).deriv]
+      positivity
+  have h := hGmono (show (1 : ℝ) ∈ Set.Icc 1 x from ⟨le_rfl, hx⟩)
+    (show x ∈ Set.Icc 1 x from ⟨hx, le_rfl⟩) hx
+  have hG1 : G 1 = 0 := by simp [G]
+  have hGx : 0 ≤ G x := by simpa [hG1] using h
+  dsimp only [G, x] at hGx
+  linarith
 
 private lemma exponentialPDF_toReal {r : ℝ} (hr : 0 < r) (x : ℝ) :
     (exponentialPDF r x).toReal =

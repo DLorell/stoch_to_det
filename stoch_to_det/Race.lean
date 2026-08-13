@@ -7049,6 +7049,176 @@ private theorem scalar_diag_context {p : α × β → ℝ}
     _ ≤ 1 - P0 :=
       diag_context_arith hP0 (scalarSourceKLNats_nonneg K g g) hinv
 
+/-- The sharpened diagonal context bound.  Pricing every source clock
+against `Exp(mean 1)` and using `diag_context_quarter_arith` avoids the
+lossy source-KL discard in `scalar_diag_context`. -/
+private theorem scalar_diag_context_quarter {p : α × β → ℝ}
+    {D : SeedSetup p} (K : Clustering D) (g : K.κ) :
+    scalarWinnerProb K g g * scalarContextInfoNats K g g ≤
+      (1 / 4 : ℝ) * (1 - scalarWinnerProb K g g) := by
+  let P0 : ℝ := scalarWinnerProb K g g
+  let r : α × β → ℝ := scalarSource K g g
+  let Q0 : Measure ℝ := expMeasure (1 / (1 : ℝ))
+  let Pz : α × β → Measure ℝ := fun z =>
+    if r z = 0 then Q0 else K.clockLawGiven g z
+  have hP0 : 0 < P0 := by
+    simpa only [P0] using scalarWinnerProb_pos K g g
+  have hr : IsPMF r := by
+    simpa only [r] using scalarSource_isPMF K g g
+  have hrtotal : ∑ z, r z = 1 := by
+    simpa [mass] using hr.total
+  have hQtotal : ∑ z, K.Q g z = 1 := by
+    simpa [mass] using (K.Q_isContact g).1.total
+  have hnum_eq (z : α × β) :
+      K.Q g z * K.sigma g z = r z * P0 := by
+    dsimp only [r, P0]
+    unfold scalarSource
+    rw [div_mul_cancel₀ _ (scalarWinnerProb_pos K g g).ne']
+  have hnum_pos (z : α × β) (hz : 0 < r z) :
+      0 < K.Q g z * K.sigma g z := by
+    rw [hnum_eq z]
+    exact mul_pos hz hP0
+  have hsigma_pos (z : α × β) (hz : 0 < r z) :
+      0 < K.sigma g z := by
+    have hnum := hnum_pos z hz
+    exact lt_of_le_of_ne (raceSigma_nonneg K g z)
+      (Ne.symm (mul_ne_zero_iff.mp hnum.ne').2)
+  have hQzero (z : α × β) (hz : r z = 0) : K.Q g z = 0 := by
+    by_contra hQ
+    have hQpos : 0 < K.Q g z :=
+      lt_of_le_of_ne ((K.Q_isContact g).1.nonneg z) (Ne.symm hQ)
+    have hzsupport : z ∈ support p := by
+      by_contra hzs
+      exact hQ ((K.Q_isContact g).2.1 z hzs)
+    have hsigma : 0 < K.sigma g z := K.sigma_pos g z hzsupport
+    have hrpos : 0 < r z := by
+      dsimp only [r]
+      unfold scalarSource
+      exact div_pos (mul_pos hQpos hsigma) hP0
+    exact (ne_of_gt hrpos) hz
+  have hsigma_le_one (z : α × β) (hz : r z ≠ 0) :
+      K.sigma g z ≤ 1 := by
+    have hrz : 0 < r z := lt_of_le_of_ne (hr.nonneg z) (Ne.symm hz)
+    have hnum := hnum_pos z hrz
+    have hQne : K.Q g z ≠ 0 := (mul_ne_zero_iff.mp hnum.ne').1
+    have hzsupport : z ∈ support p := by
+      by_contra hzs
+      exact hQne ((K.Q_isContact g).2.1 z hzs)
+    have hsingle : K.sigma g z ≤ ∑ c, K.sigma c z :=
+      Finset.single_le_sum (fun c _ => raceSigma_nonneg K c z)
+        (Finset.mem_univ g)
+    rwa [raceSigma_sum_eq_one K z hzsupport] at hsingle
+  have hQ0prob : IsProbabilityMeasure Q0 := by
+    dsimp only [Q0]
+    exact isProbabilityMeasure_expMeasure (one_div_pos.mpr zero_lt_one)
+  have hPzprob (z : α × β) : IsProbabilityMeasure (Pz z) := by
+    by_cases hz : r z = 0
+    · simpa only [Pz, if_pos hz] using hQ0prob
+    · simp only [Pz, if_neg hz]
+      unfold Clustering.clockLawGiven
+      exact isProbabilityMeasure_expMeasure
+        (one_div_pos.mpr (hsigma_pos z
+          (lt_of_le_of_ne (hr.nonneg z) (Ne.symm hz))))
+  letI (z : α × β) : IsProbabilityMeasure (Pz z) := hPzprob z
+  have hmix : scalarClockMarginal K g g =
+      ∑ z, ENNReal.ofReal (r z) • Pz z := by
+    unfold scalarClockMarginal
+    change (∑ z, ENNReal.ofReal (r z) • K.clockLawGiven g z) = _
+    apply Finset.sum_congr rfl
+    intro z _
+    by_cases hz : r z = 0 <;> simp [Pz, hz]
+  have hMprob : IsProbabilityMeasure (scalarClockMarginal K g g) := by
+    constructor
+    rw [hmix]
+    rw [show (∑ z, ENNReal.ofReal (r z) • Pz z) Set.univ =
+        ∑ z, (ENNReal.ofReal (r z) • Pz z) Set.univ by simp]
+    simp only [Measure.smul_apply, smul_eq_mul, measure_univ, mul_one]
+    rw [← ENNReal.ofReal_sum_of_nonneg (fun z _ => hr.nonneg z), hrtotal]
+    norm_num
+  have hPMfinite (z : α × β) (hz : 0 < r z) :
+      klDiv (Pz z) (scalarClockMarginal K g g) ≠ ⊤ := by
+    simp only [Pz, if_neg hz.ne']
+    exact scalarClock_klDiv_ne_top K g g z (hnum_pos z hz)
+  have hPQfinite (z : α × β) (hz : 0 < r z) :
+      klDiv (Pz z) Q0 ≠ ⊤ := by
+    simp only [Pz, if_neg hz.ne']
+    unfold Clustering.clockLawGiven
+    simpa only [Q0] using
+      expMeasure_klDiv_ne_top (hsigma_pos z hz) zero_lt_one
+  have hgolden : scalarContextInfoNats K g g ≤
+      ∑ z, r z * (klDiv (Pz z) Q0).toReal := by
+    unfold scalarContextInfoNats
+    change (∑ z, r z *
+      (klDiv (K.clockLawGiven g z) (scalarClockMarginal K g g)).toReal) ≤ _
+    calc
+      (∑ z, r z *
+          (klDiv (K.clockLawGiven g z)
+            (scalarClockMarginal K g g)).toReal) =
+          ∑ z, r z *
+            (klDiv (Pz z) (scalarClockMarginal K g g)).toReal := by
+        apply Finset.sum_congr rfl
+        intro z _
+        by_cases hz : r z = 0 <;> simp [Pz, hz]
+      _ ≤ ∑ z, r z * (klDiv (Pz z) Q0).toReal :=
+        finite_mixture_golden_le r Pz (scalarClockMarginal K g g) Q0
+          hr hPzprob hMprob hQ0prob hmix hPMfinite hPQfinite
+  have hreference_term (z : α × β) :
+      r z * (klDiv (Pz z) Q0).toReal =
+        r z * (Real.log (1 / K.sigma g z) + K.sigma g z - 1) := by
+    by_cases hz : r z = 0
+    · simp [hz]
+    · have hrz : 0 < r z :=
+        lt_of_le_of_ne (hr.nonneg z) (Ne.symm hz)
+      have hsigma := hsigma_pos z hrz
+      simp only [Pz, if_neg hz]
+      dsimp only [Q0]
+      unfold Clustering.clockLawGiven
+      rw [klDiv_expMeasure hsigma zero_lt_one]
+      ring
+  have hquarter_term (z : α × β) :
+      r z * (klDiv (Pz z) Q0).toReal ≤
+        r z * ((1 / 4 : ℝ) * (1 / K.sigma g z - 1)) := by
+    rw [hreference_term z]
+    by_cases hz : r z = 0
+    · simp [hz]
+    · exact mul_le_mul_of_nonneg_left
+        (diag_context_quarter_arith
+          (hsigma_pos z (lt_of_le_of_ne (hr.nonneg z) (Ne.symm hz)))
+          (hsigma_le_one z hz))
+        (hr.nonneg z)
+  have hmass_term (z : α × β) :
+      P0 * (r z * ((1 / 4 : ℝ) * (1 / K.sigma g z - 1))) =
+        (1 / 4 : ℝ) * (K.Q g z * (1 - K.sigma g z)) := by
+    by_cases hz : r z = 0
+    · rw [hz, zero_mul, mul_zero, hQzero z hz, zero_mul, mul_zero]
+    · have hrz : 0 < r z :=
+        lt_of_le_of_ne (hr.nonneg z) (Ne.symm hz)
+      have hsigma := hsigma_pos z hrz
+      field_simp [hsigma.ne']
+      nlinarith [hnum_eq z]
+  change P0 * scalarContextInfoNats K g g ≤ (1 / 4 : ℝ) * (1 - P0)
+  calc
+    P0 * scalarContextInfoNats K g g ≤
+        P0 * (∑ z, r z * (klDiv (Pz z) Q0).toReal) :=
+      mul_le_mul_of_nonneg_left hgolden hP0.le
+    _ ≤ P0 * (∑ z,
+        r z * ((1 / 4 : ℝ) * (1 / K.sigma g z - 1))) := by
+      exact mul_le_mul_of_nonneg_left
+        (Finset.sum_le_sum fun z _ => hquarter_term z) hP0.le
+    _ = ∑ z, (1 / 4 : ℝ) *
+        (K.Q g z * (1 - K.sigma g z)) := by
+      rw [Finset.mul_sum]
+      apply Finset.sum_congr rfl
+      intro z _
+      exact hmass_term z
+    _ = (1 / 4 : ℝ) * (1 - P0) := by
+      rw [← Finset.mul_sum]
+      simp_rw [mul_sub]
+      simp only [mul_one]
+      rw [Finset.sum_sub_distrib, hQtotal]
+      dsimp only [P0, scalarWinnerProb]
+      ring
+
 /-- Expanding `condMIcts` and normalizing each positive context gives the
 weighted sum of the per-context informations. -/
 private theorem scalar_context_decomposition_nats {p : α × β → ℝ}
@@ -7358,6 +7528,100 @@ private theorem race_scalar_le_1771 {p : α × β → ℝ}
       _ = (K.Sinfo + kappa1771 * K.dMis) * Real.log 2 := by
         rw [hk]
         ring
+  exact le_of_mul_le_mul_right hmul hlog
+
+/-- Assembly with the improved quarter-diagonal estimate and the existing
+off-diagonal estimate. -/
+private theorem scalar_assembly_nats_quarter {p : α × β → ℝ}
+    {D : SeedSetup p} (K : Clustering D) :
+    raceScalar K * Real.log 2 ≤
+      K.Sinfo * Real.log 2 + (1 / 4 + cOff1771) * K.dMis := by
+  have hcontext (g : K.κ) :
+      (∑ b, scalarWinnerProb K g b * scalarContextInfoNats K g b) ≤
+        (∑ b, scalarWinnerProb K g b * scalarSourceKLNats K g b) +
+          (1 / 4 + cOff1771) *
+            ∑ b ∈ univ.erase g, scalarWinnerProb K g b := by
+    have hoff :
+        (∑ b ∈ univ.erase g,
+          scalarWinnerProb K g b * scalarContextInfoNats K g b) ≤
+        ∑ b ∈ univ.erase g,
+          scalarWinnerProb K g b *
+            (scalarSourceKLNats K g b + cOff1771) := by
+      apply Finset.sum_le_sum
+      intro b hb
+      exact mul_le_mul_of_nonneg_left
+        (scalar_offdiag_context_1771 K g b (Finset.mem_erase.mp hb).1)
+        (scalarWinnerProb_pos K g b).le
+    have hdiag := scalar_diag_context_quarter K g
+    have hdiagC :
+        0 ≤ scalarWinnerProb K g g * scalarSourceKLNats K g g :=
+      mul_nonneg (scalarWinnerProb_pos K g g).le
+        (scalarSourceKLNats_nonneg K g g)
+    have hIerase := Finset.sum_erase_add (univ : Finset K.κ)
+      (fun b => scalarWinnerProb K g b * scalarContextInfoNats K g b)
+      (Finset.mem_univ g)
+    have hCerase := Finset.sum_erase_add (univ : Finset K.κ)
+      (fun b => scalarWinnerProb K g b * scalarSourceKLNats K g b)
+      (Finset.mem_univ g)
+    have hPerase := Finset.sum_erase_add (univ : Finset K.κ)
+      (fun b => scalarWinnerProb K g b) (Finset.mem_univ g)
+    have hPsum := sum_scalarWinnerProb K g
+    have hoffExpand :
+        (∑ b ∈ univ.erase g,
+          scalarWinnerProb K g b *
+            (scalarSourceKLNats K g b + cOff1771)) =
+          (∑ b ∈ univ.erase g,
+            scalarWinnerProb K g b * scalarSourceKLNats K g b) +
+          cOff1771 * ∑ b ∈ univ.erase g, scalarWinnerProb K g b := by
+      simp_rw [mul_add]
+      rw [Finset.sum_add_distrib]
+      congr 1
+      rw [Finset.mul_sum]
+      apply Finset.sum_congr rfl
+      intro b _
+      ring
+    rw [hoffExpand] at hoff
+    nlinarith
+  calc
+    raceScalar K * Real.log 2 =
+        ∑ g, K.s g * ∑ b,
+          scalarWinnerProb K g b * scalarContextInfoNats K g b :=
+      scalar_context_decomposition_nats K
+    _ ≤ ∑ g, K.s g *
+        ((∑ b, scalarWinnerProb K g b * scalarSourceKLNats K g b) +
+          (1 / 4 + cOff1771) *
+            ∑ b ∈ univ.erase g, scalarWinnerProb K g b) := by
+      apply Finset.sum_le_sum
+      intro g _
+      exact mul_le_mul_of_nonneg_left (hcontext g) (clusterMass_nonneg K g)
+    _ = (∑ g, K.s g * ∑ b,
+          scalarWinnerProb K g b * scalarSourceKLNats K g b) +
+        (1 / 4 + cOff1771) *
+          ∑ g, K.s g * ∑ b ∈ univ.erase g, scalarWinnerProb K g b := by
+      simp_rw [mul_add]
+      rw [Finset.sum_add_distrib, Finset.mul_sum]
+      congr 1
+      apply Finset.sum_congr rfl
+      intro g _
+      ring
+    _ = K.Sinfo * Real.log 2 + (1 / 4 + cOff1771) * K.dMis := by
+      rw [scalar_source_mixture_identity K, scalar_mismatch_calibration K]
+
+private theorem race_scalar_le_quarter {p : α × β → ℝ}
+    {D : SeedSetup p} (K : Clustering D) :
+    raceScalar K ≤
+      K.Sinfo + ((1 / 4 + cOff1771) / Real.log 2) * K.dMis := by
+  have hlog : 0 < Real.log 2 := Real.log_pos one_lt_two
+  have hmul : raceScalar K * Real.log 2 ≤
+      (K.Sinfo + ((1 / 4 + cOff1771) / Real.log 2) * K.dMis) *
+        Real.log 2 := by
+    calc
+      raceScalar K * Real.log 2 ≤
+          K.Sinfo * Real.log 2 + (1 / 4 + cOff1771) * K.dMis :=
+        scalar_assembly_nats_quarter K
+      _ = (K.Sinfo + ((1 / 4 + cOff1771) / Real.log 2) * K.dMis) *
+          Real.log 2 := by
+        field_simp [hlog.ne']
   exact le_of_mul_le_mul_right hmul hlog
 
 /-! ### Lemma 7.5 and Theorem 10.1: the losing-vector cone -/
@@ -9492,6 +9756,28 @@ theorem exists_raceQuantities1771 {p : α × β → ℝ} (D : SeedSetup p)
       rcell_le := race_rcell_le D
     }
     scalar_le_1771 := race_scalar_le_1771 K
+  }⟩
+
+/-- The race construction equipped with the quarter-diagonal scalar
+estimate. -/
+theorem exists_raceQuantitiesQuarter {p : α × β → ℝ} (D : SeedSetup p)
+    (K : Clustering D) : Nonempty (RaceQuantitiesQuarter D K) := by
+  exact ⟨{
+    toRaceQuantities := {
+      seedLeak := raceSeedLeak D
+      scalar := raceScalar K
+      cone := raceCone K
+      winnerEntropy := raceWinnerEntropy D
+      chain_split := race_chain_split K
+      winner_entropy_identity := race_winner_entropy_identity D K
+      seedLeak_nonneg := raceSeedLeak_nonneg D
+      scalar_nonneg := raceScalar_nonneg K
+      cone_nonneg := raceCone_nonneg D K
+      scalar_le := race_scalar_le K
+      cone_le_nats := race_cone_le_nats D K
+      rcell_le := race_rcell_le D
+    }
+    scalar_le_quarter := race_scalar_le_quarter K
   }⟩
 
 end stoch_to_det

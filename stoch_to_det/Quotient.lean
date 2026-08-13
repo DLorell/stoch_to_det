@@ -1054,4 +1054,12 @@ structure RaceQuantities1771 {p : α × β → ℝ}
   scalar_le_1771 : toRaceQuantities.scalar ≤
     K.Sinfo + kappa1771 * K.dMis
 
+/-- The race interface with the sharpened quarter-diagonal scalar estimate.
+The off-diagonal estimate is unchanged, so the natural-log mismatch charge
+is `1/4 + cOff1771`. -/
+structure RaceQuantitiesQuarter {p : α × β → ℝ}
+    (D : SeedSetup p) (K : Clustering D) extends RaceQuantities D K where
+  scalar_le_quarter : toRaceQuantities.scalar ≤
+    K.Sinfo + ((1 / 4 + cOff1771) / Real.log 2) * K.dMis
+
 end stoch_to_det

@@ -10,4 +10,5 @@ fi
 
 lake build --log-level=error stoch_to_det
 lake env lean Verify.lean
+lake env lean Verify270.lean
 echo "Verification passed: source audit, full build, no sorry dependencies, and exact axiom sets."
