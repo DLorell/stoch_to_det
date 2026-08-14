@@ -22,6 +22,7 @@ import stoch_to_det.ConstantBound1771
 import stoch_to_det.GeneralLatent
 import stoch_to_det.JointLatent
 import stoch_to_det.MainTheorems
+import stoch_to_det.SharedRace
 
 /-!
 # stoch_to_det — root module
@@ -39,4 +40,15 @@ The three improved public endpoints are declared together in
 rounded deterministic intermediate is `stoch_to_det.LW_sum_1771_joint_deterministic`,
 while `stoch_to_det.LW_sum_1771_joint` has the deliberately weaker conclusion
 `G : Latent p` with no determinism assumption.
+
+The unconditional theorem `stoch_to_det.T_le_96` is the current best certified
+two-variable constant. Its shared-race ingredient ranges over every finite
+nonempty label alphabet, assuming strictly positive posterior PMFs only on the
+support of the source law. In bits the race bound is `W ≤ 2I + d`; its equivalent
+natural-log form is `W_nats ≤ 2I_nats + (log 2)d`.
+
+The finite shared-race interface and standalone clock laws live under
+`stoch_to_det.SharedRace`. The exact clock-cell analysis and concrete grouped
+race bridge live in `stoch_to_det.Race`; the calibrated mismatch charge and
+final ledger then close `stoch_to_det.T_le_96`.
 -/
