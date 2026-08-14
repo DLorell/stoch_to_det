@@ -1816,6 +1816,32 @@ private lemma MI_replica_l₀_eq_joint
     (fun u => g u.2.2.2) (fun v : D.L.ι × (α × β) => v.1)
     (fun v => g v.2) hpair
 
+private lemma condMI_replica_l₀_eq_joint
+    {Γ Δ : Type*} [Fintype Γ] [Fintype Δ] [DecidableEq Γ] [DecidableEq Δ]
+    (g : α × β → Γ) (h : α × β → Δ) :
+    condMI (fun u : D.L.ι × D.L.ι × D.L.ι × (α × β) => u.1)
+        (fun u => g u.2.2.2) (fun u => h u.2.2.2) (replicaLaw D) =
+      condMI (fun v : D.L.ι × (α × β) => v.1) (fun v => g v.2)
+        (fun v => h v.2) D.L.joint := by
+  let base : D.L.ι × D.L.ι × D.L.ι × (α × β) →
+      D.L.ι × (α × β) := fun u => (u.1, u.2.2.2)
+  let k : D.L.ι × (α × β) → D.L.ι × Γ × Δ :=
+    fun v => (v.1, g v.2, h v.2)
+  have htriple :
+      push (fun u : D.L.ι × D.L.ι × D.L.ι × (α × β) =>
+        (u.1, g u.2.2.2, h u.2.2.2)) (replicaLaw D) =
+      push (fun v : D.L.ι × (α × β) => (v.1, g v.2, h v.2)) D.L.joint := by
+    calc
+      _ = push k (push base (replicaLaw D)) := by
+        symm
+        simpa [base, k, Function.comp_def] using push_push base k (replicaLaw D)
+      _ = push k D.L.joint := by rw [push_replica_l₀z D]
+      _ = _ := rfl
+  exact condMI_eq_of_triple_push_eq (replicaLaw D) D.L.joint
+    (fun u : D.L.ι × D.L.ι × D.L.ι × (α × β) => u.1)
+    (fun u => g u.2.2.2) (fun u => h u.2.2.2)
+    (fun v : D.L.ι × (α × β) => v.1) (fun v => g v.2) (fun v => h v.2) htriple
+
 private lemma MI_equiv_left_local
     {A Γ Γ' Δ : Type*} [Fintype A] [Fintype Γ] [Fintype Γ'] [Fintype Δ]
     [DecidableEq Γ] [DecidableEq Γ'] [DecidableEq Δ]
@@ -1900,6 +1926,18 @@ private lemma MI_replica_swap
     (fun u => g u.2.2.2)
     (fun u : D.L.ι × D.L.ι × D.L.ι × (α × β) => u.1)
     (fun u => g u.2.2.2) hpair
+
+private lemma Hvar_replica_swap
+    {Γ : Type*} [Fintype Γ] [DecidableEq Γ] (g : D.L.ι → α × β → Γ) :
+    Hvar (fun u : D.L.ι × D.L.ι × D.L.ι × (α × β) => g u.2.1 u.2.2.2)
+        (replicaLaw D) =
+      Hvar (fun u : D.L.ι × D.L.ι × D.L.ι × (α × β) => g u.1 u.2.2.2)
+        (replicaLaw D) := by
+  let f : D.L.ι × D.L.ι × D.L.ι × (α × β) → Γ := fun u => g u.1 u.2.2.2
+  have hpush := push_comp_equiv_eq_of_invariant (replicaSwap₀₁ D) (replicaLaw D)
+    (replicaLaw_swap₀₁ D) f
+  unfold Hvar
+  simpa [f, replicaSwap₀₁, Function.comp_def] using congrArg H hpush
 
 private lemma condMI_eq_MI_pair_sub_local
     {A Γ Δ K : Type*} [Fintype A] [Fintype Γ] [Fintype Δ] [Fintype K]
@@ -1993,6 +2031,14 @@ private lemma replica_condMI_l₂_eq_l₁ :
 /-- `b_Z := I(L₀; Z ∣ L₁)`. -/
 noncomputable def bZ : ℝ :=
   condMI (fun u => u.1) (fun u => u.2.2.2) (fun u => u.2.1) (replicaLaw D)
+
+/-- The three nonnegative replica interactions which measure the gap between
+`b_Z` and the full `M + B_q` budget. -/
+noncomputable def jointCharge : ℝ :=
+  condMI (fun u => u.1) (fun u => u.2.1) (fun u => u.2.2.2.1) (replicaLaw D)
+    + condMI (fun u => u.1) (fun u => u.2.1) (fun u => u.2.2.2.2) (replicaLaw D)
+    + condMI (fun u => u.2.2.2.1) (fun u => u.2.2.2.2)
+      (fun u => (u.1, u.2.1)) (replicaLaw D)
 
 /-- `j := I(L;Z)`. -/
 noncomputable def jInfo : ℝ := MI (fun q => q.1) (fun q => q.2) D.L.joint
@@ -2665,6 +2711,161 @@ private lemma replica_M_identity :
     (fun u => u.2.2.2.1) (fun u => u.2.2.2.2) (fun u => u.1)
     (fun v => v.2.1) (fun v => v.2.2) (fun v => v.1) htriple
   simpa [SeedSetup.M] using h
+
+private lemma replica_Bq_identity :
+    condMI (fun u => u.1) (fun u => u.2.2.2.1) (fun u => u.2.2.2.2)
+        (replicaLaw D)
+      + condMI (fun u => u.1) (fun u => u.2.2.2.2) (fun u => u.2.2.2.1)
+        (replicaLaw D) = D.Bq := by
+  rw [condMI_replica_l₀_eq_joint D (fun z : α × β => z.1) (fun z => z.2),
+    condMI_replica_l₀_eq_joint D (fun z : α × β => z.2) (fun z => z.1)]
+  rfl
+
+/-- Exact replica ledger identity:
+`M + B_q = b_Z + I(L₀;L₁|X) + I(L₀;L₁|Y) + I(X;Y|L₀,L₁)`. -/
+theorem M_add_Bq_eq_bZ_add_jointCharge :
+    D.M + D.Bq = bZ D + jointCharge D := by
+  have hR := replicaLaw_isPMF D
+  have hXA :
+      Hvar (fun u : D.L.ι × D.L.ι × D.L.ι × (α × β) => (u.2.2.2.1, u.1))
+          (replicaLaw D) =
+        Hvar (fun u => (u.1, u.2.2.2.1)) (replicaLaw D) := by
+    symm
+    simpa using Hvar_equiv hR (fun u => (u.2.2.2.1, u.1))
+      (Equiv.prodComm α D.L.ι)
+  have hYA :
+      Hvar (fun u : D.L.ι × D.L.ι × D.L.ι × (α × β) => (u.2.2.2.2, u.1))
+          (replicaLaw D) =
+        Hvar (fun u => (u.1, u.2.2.2.2)) (replicaLaw D) := by
+    symm
+    simpa using Hvar_equiv hR (fun u => (u.2.2.2.2, u.1))
+      (Equiv.prodComm β D.L.ι)
+  let cycleXYA : α × (β × D.L.ι) ≃ D.L.ι × (α × β) :=
+    { toFun := fun t => (t.2.2, t.1, t.2.1)
+      invFun := fun t => (t.2.1, t.2.2, t.1)
+      left_inv := by rintro ⟨x, y, a⟩; rfl
+      right_inv := by rintro ⟨a, x, y⟩; rfl }
+  have hXYA :
+      Hvar (fun u : D.L.ι × D.L.ι × D.L.ι × (α × β) =>
+          (u.2.2.2.1, u.2.2.2.2, u.1)) (replicaLaw D) =
+        Hvar (fun u => (u.1, u.2.2.2.1, u.2.2.2.2)) (replicaLaw D) := by
+    symm
+    simpa [cycleXYA] using Hvar_equiv hR
+      (fun u => (u.2.2.2.1, u.2.2.2.2, u.1)) cycleXYA
+  have hYX :
+      Hvar (fun u : D.L.ι × D.L.ι × D.L.ι × (α × β) =>
+          (u.2.2.2.2, u.2.2.2.1)) (replicaLaw D) =
+        Hvar (fun u => (u.2.2.2.1, u.2.2.2.2)) (replicaLaw D) := by
+    symm
+    simpa using Hvar_equiv hR (fun u => (u.2.2.2.2, u.2.2.2.1))
+      (Equiv.prodComm β α)
+  have hAYX :
+      Hvar (fun u : D.L.ι × D.L.ι × D.L.ι × (α × β) =>
+          (u.1, u.2.2.2.2, u.2.2.2.1)) (replicaLaw D) =
+        Hvar (fun u => (u.1, u.2.2.2.1, u.2.2.2.2)) (replicaLaw D) := by
+    symm
+    simpa using Hvar_equiv hR
+      (fun u => (u.1, u.2.2.2.2, u.2.2.2.1))
+      (Equiv.prodCongr (Equiv.refl D.L.ι) (Equiv.prodComm β α))
+  have hB :
+      Hvar (fun u : D.L.ι × D.L.ι × D.L.ι × (α × β) => u.2.1)
+          (replicaLaw D) = Hvar (fun u => u.1) (replicaLaw D) := by
+    simpa only using Hvar_replica_swap D (fun l _ => l)
+  have hBX :
+      Hvar (fun u : D.L.ι × D.L.ι × D.L.ι × (α × β) => (u.2.1, u.2.2.2.1))
+          (replicaLaw D) =
+        Hvar (fun u => (u.1, u.2.2.2.1)) (replicaLaw D) := by
+    simpa only using Hvar_replica_swap D (fun l z => (l, z.1))
+  have hBY :
+      Hvar (fun u : D.L.ι × D.L.ι × D.L.ι × (α × β) => (u.2.1, u.2.2.2.2))
+          (replicaLaw D) =
+        Hvar (fun u => (u.1, u.2.2.2.2)) (replicaLaw D) := by
+    simpa only using Hvar_replica_swap D (fun l z => (l, z.2))
+  have hBZ :
+      Hvar (fun u : D.L.ι × D.L.ι × D.L.ι × (α × β) => (u.2.1, u.2.2.2))
+          (replicaLaw D) =
+        Hvar (fun u => (u.1, u.2.2.2)) (replicaLaw D) := by
+    simpa only using Hvar_replica_swap D (fun l z => (l, z))
+  have hZB :
+      Hvar (fun u : D.L.ι × D.L.ι × D.L.ι × (α × β) => (u.2.2.2, u.2.1))
+          (replicaLaw D) =
+        Hvar (fun u => (u.1, u.2.2.2)) (replicaLaw D) := by
+    calc
+      _ = Hvar (fun u => (u.2.1, u.2.2.2)) (replicaLaw D) := by
+        symm
+        simpa using Hvar_equiv hR (fun u => (u.2.2.2, u.2.1))
+          (Equiv.prodComm (α × β) D.L.ι)
+      _ = _ := hBZ
+  have hAZB :
+      Hvar (fun u : D.L.ι × D.L.ι × D.L.ι × (α × β) =>
+          (u.1, u.2.2.2, u.2.1)) (replicaLaw D) =
+        Hvar (fun u => (u.1, u.2.1, u.2.2.2)) (replicaLaw D) := by
+    symm
+    simpa using Hvar_equiv hR (fun u => (u.1, u.2.2.2, u.2.1))
+      (Equiv.prodCongr (Equiv.refl D.L.ι) (Equiv.prodComm (α × β) D.L.ι))
+  let cycleXAB : α × (D.L.ι × D.L.ι) ≃ D.L.ι × (D.L.ι × α) :=
+    { toFun := fun t => (t.2.1, t.2.2, t.1)
+      invFun := fun t => (t.2.2, t.1, t.2.1)
+      left_inv := by rintro ⟨x, a, b⟩; rfl
+      right_inv := by rintro ⟨a, b, x⟩; rfl }
+  have hXAB :
+      Hvar (fun u : D.L.ι × D.L.ι × D.L.ι × (α × β) =>
+          (u.2.2.2.1, (u.1, u.2.1))) (replicaLaw D) =
+        Hvar (fun u => (u.1, u.2.1, u.2.2.2.1)) (replicaLaw D) := by
+    symm
+    simpa [cycleXAB] using Hvar_equiv hR
+      (fun u => (u.2.2.2.1, (u.1, u.2.1))) cycleXAB
+  let cycleYAB : β × (D.L.ι × D.L.ι) ≃ D.L.ι × (D.L.ι × β) :=
+    { toFun := fun t => (t.2.1, t.2.2, t.1)
+      invFun := fun t => (t.2.2, t.1, t.2.1)
+      left_inv := by rintro ⟨y, a, b⟩; rfl
+      right_inv := by rintro ⟨a, b, y⟩; rfl }
+  have hYAB :
+      Hvar (fun u : D.L.ι × D.L.ι × D.L.ι × (α × β) =>
+          (u.2.2.2.2, (u.1, u.2.1))) (replicaLaw D) =
+        Hvar (fun u => (u.1, u.2.1, u.2.2.2.2)) (replicaLaw D) := by
+    symm
+    simpa [cycleYAB] using Hvar_equiv hR
+      (fun u => (u.2.2.2.2, (u.1, u.2.1))) cycleYAB
+  let cycleXYAB : α × (β × (D.L.ι × D.L.ι)) ≃
+      D.L.ι × (D.L.ι × (α × β)) :=
+    { toFun := fun t => (t.2.2.1, t.2.2.2, t.1, t.2.1)
+      invFun := fun t => (t.2.2.1, t.2.2.2, t.1, t.2.1)
+      left_inv := by rintro ⟨x, y, a, b⟩; rfl
+      right_inv := by rintro ⟨a, b, x, y⟩; rfl }
+  have hXYAB :
+      Hvar (fun u : D.L.ι × D.L.ι × D.L.ι × (α × β) =>
+          (u.2.2.2.1, u.2.2.2.2, (u.1, u.2.1))) (replicaLaw D) =
+        Hvar (fun u => (u.1, u.2.1, u.2.2.2)) (replicaLaw D) := by
+    symm
+    simpa [cycleXYAB] using Hvar_equiv hR
+      (fun u => (u.2.2.2.1, u.2.2.2.2, (u.1, u.2.1))) cycleXYAB
+  have hmarkov := replica_markov D
+  unfold condMI at hmarkov
+  simp only at hmarkov
+  rw [hBZ] at hmarkov
+  rw [← replica_M_identity D, ← replica_Bq_identity D]
+  unfold bZ jointCharge condMI
+  simp only
+  rw [hXA, hYA, hXYA, hYX, hAYX, hZB, hAZB, hB, hBX, hBY, hXAB, hYAB, hXYAB]
+  linarith
+
+/-- The joint replica charge is nonnegative. -/
+theorem jointCharge_nonneg : 0 ≤ jointCharge D := by
+  have hR := replicaLaw_isPMF D
+  have hX := condMI_nonneg hR (fun u => u.1) (fun u => u.2.1)
+    (fun u => u.2.2.2.1)
+  have hY := condMI_nonneg hR (fun u => u.1) (fun u => u.2.1)
+    (fun u => u.2.2.2.2)
+  have hXY := condMI_nonneg hR (fun u => u.2.2.2.1) (fun u => u.2.2.2.2)
+    (fun u => (u.1, u.2.1))
+  unfold jointCharge
+  linarith
+
+/-- The replica leakage fits inside the full optimality budget: `b_Z ≤ τ`. -/
+theorem bZ_le_tau : bZ D ≤ tau p := by
+  rw [D.tau_eq_M_add_Bq, M_add_Bq_eq_bZ_add_jointCharge D]
+  exact le_add_of_nonneg_right (jointCharge_nonneg D)
 
 private lemma replica_interaction_identity :
     condMI (fun u => (u.2.1, u.2.2.1)) (fun u => u.2.2.2) (fun u => u.1)
