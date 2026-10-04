@@ -3526,21 +3526,221 @@ private lemma value_eq_zero_of_weighted_sq_sum_eq_zero
   have hmsq : f i ^ 2 = 0 := (mul_eq_zero.mp hterm).resolve_left hmi
   nlinarith [sq_nonneg (f i)]
 
-/- The `q`-oriented half of the exact-secant rigidity argument. -/
-private theorem rho1771_le_rhoHGR_of_contacts
+/-! ### L² secant geometry for two contacts -/
+
+/-- The `X`-marginal cube-root secant from `q` to `r`. -/
+noncomputable def contactSecantX (q r : α × β → ℝ) (x : α) : ℝ :=
+  (mX r x / mX q x) ^ ((1 : ℝ) / 3) - 1
+
+/-- The `Y`-marginal cube-root secant from `q` to `r`. -/
+noncomputable def contactSecantY (q r : α × β → ℝ) (y : β) : ℝ :=
+  (mY r y / mY q y) ^ ((1 : ℝ) / 3) - 1
+
+/-- Sum of the two marginal squared secant energies. -/
+noncomputable def contactSecantEnergy (q r : α × β → ℝ) : ℝ :=
+  (∑ x, mX q x * contactSecantX q r x ^ 2) +
+    ∑ y, mY q y * contactSecantY q r y ^ 2
+
+/-- Cross term of the two marginal secants under the joint law `q`. -/
+noncomputable def contactSecantCross (q r : α × β → ℝ) : ℝ :=
+  ∑ z, q z * contactSecantX q r z.1 * contactSecantY q r z.2
+
+/-- Exact marginal-mean identities forced by the two contact equations. -/
+theorem contactSecant_mean_identities
     {S : Finset (α × β)} {w q r : α × β → ℝ}
-    (hw : Feasible S w) (hq : IsContact S w q) (hr : IsContact S w r)
+    (hq : IsContact S w q) (hr : IsContact S w r)
+    (hqs : support q = S) (hrs : support r = S) :
+    (∑ x, mX q x * contactSecantX q r x) =
+        -(2 * (∑ x, mX q x * contactSecantX q r x ^ 2) +
+          (∑ y, mY q y * contactSecantY q r y ^ 2)) / 3 ∧
+    (∑ y, mY q y * contactSecantY q r y) =
+        -((∑ x, mX q x * contactSecantX q r x ^ 2) +
+          2 * (∑ y, mY q y * contactSecantY q r y ^ 2)) / 3 := by
+  let f : α → ℝ := contactSecantX q r
+  let g : β → ℝ := contactSecantY q r
+  let A : ℝ := ∑ x, mX q x * f x ^ 2
+  let B : ℝ := ∑ y, mY q y * g y ^ 2
+  let μf : ℝ := ∑ x, mX q x * f x
+  let μg : ℝ := ∑ y, mY q y * g y
+  have hsec :
+      (∀ x, mX q x * f x =
+        2 * (∑ y, q (x, y) * g y) + ∑ y, q (x, y) * g y ^ 2) ∧
+      (∀ y, mY q y * g y =
+        2 * (∑ x, q (x, y) * f x) + ∑ x, q (x, y) * f x ^ 2) := by
+    simpa [f, g, contactSecantX, contactSecantY] using
+      secant_expanded_equations hq hr hqs hrs
+  have hmeanf : μf = 2 * μg + B := by
+    calc
+      μf = ∑ x, mX q x * f x := rfl
+      _ = ∑ x, (2 * (∑ y, q (x, y) * g y) +
+          ∑ y, q (x, y) * g y ^ 2) := by
+        apply Finset.sum_congr rfl
+        intro x _
+        exact hsec.1 x
+      _ = 2 * (∑ z, q z * g z.2) + ∑ z, q z * g z.2 ^ 2 := by
+        rw [Finset.sum_add_distrib, ← Finset.mul_sum,
+          Fintype.sum_prod_type, Fintype.sum_prod_type]
+      _ = 2 * μg + B := by
+        rw [← sum_push_mul Prod.snd q g,
+          ← sum_push_mul Prod.snd q (fun y => g y ^ 2)]
+  have hmeang : μg = 2 * μf + A := by
+    have hfirst : (∑ y, ∑ x, q (x, y) * f x) =
+        ∑ z, q z * f z.1 := by
+      calc
+        (∑ y, ∑ x, q (x, y) * f x) =
+            ∑ x, ∑ y, q (x, y) * f x := Finset.sum_comm
+        _ = ∑ z, q z * f z.1 := by rw [Fintype.sum_prod_type]
+    have hsecond : (∑ y, ∑ x, q (x, y) * f x ^ 2) =
+        ∑ z, q z * f z.1 ^ 2 := by
+      calc
+        (∑ y, ∑ x, q (x, y) * f x ^ 2) =
+            ∑ x, ∑ y, q (x, y) * f x ^ 2 := Finset.sum_comm
+        _ = ∑ z, q z * f z.1 ^ 2 := by rw [Fintype.sum_prod_type]
+    calc
+      μg = ∑ y, mY q y * g y := rfl
+      _ = ∑ y, (2 * (∑ x, q (x, y) * f x) +
+          ∑ x, q (x, y) * f x ^ 2) := by
+        apply Finset.sum_congr rfl
+        intro y _
+        exact hsec.2 y
+      _ = 2 * (∑ z, q z * f z.1) + ∑ z, q z * f z.1 ^ 2 := by
+        rw [Finset.sum_add_distrib, ← Finset.mul_sum, hfirst, hsecond]
+      _ = 2 * μf + A := by
+        rw [← sum_push_mul Prod.fst q f,
+          ← sum_push_mul Prod.fst q (fun x => f x ^ 2)]
+  constructor <;>
+    change _ = _ <;>
+    dsimp [f, g, A, B, μf, μg] at hmeanf hmeang ⊢ <;>
+    linarith
+
+/-- Exact Hellinger identity for two contacts of the same feasible kernel. -/
+theorem hellingerSq_eq_two_contactSecantEnergy_sub_two_cross
+    {S : Finset (α × β)} {w q r : α × β → ℝ}
+    (hq : IsContact S w q) (hr : IsContact S w r)
+    (hqs : support q = S) (hrs : support r = S) :
+    hellingerSq q r =
+      2 * contactSecantEnergy q r - 2 * contactSecantCross q r := by
+  let f : α → ℝ := contactSecantX q r
+  let g : β → ℝ := contactSecantY q r
+  let A : ℝ := ∑ x, mX q x * f x ^ 2
+  let B : ℝ := ∑ y, mY q y * g y ^ 2
+  let R : ℝ := ∑ z, q z * f z.1 * g z.2
+  let μf : ℝ := ∑ x, mX q x * f x
+  let μg : ℝ := ∑ y, mY q y * g y
+  have hmeans := contactSecant_mean_identities hq hr hqs hrs
+  have hμf : μf = -(2 * A + B) / 3 := by
+    simpa [μf, A, B, f, g] using hmeans.1
+  have hμg : μg = -(A + 2 * B) / 3 := by
+    simpa [μf, μg, A, B, f, g] using hmeans.2
+  have hratio := contact_ratio_eq hq hr hqs hrs
+  have hsqrt_tilt : ∀ z,
+      Real.sqrt (q z * r z) = q z * (f z.1 + 1) * (g z.2 + 1) := by
+    intro z
+    have hf0 : 0 ≤ f z.1 + 1 := by
+      dsimp [f, contactSecantX]
+      have hdiv : 0 ≤ mX r z.1 / mX q z.1 :=
+        div_nonneg ((isPMF_push hr.1).nonneg z.1)
+          ((isPMF_push hq.1).nonneg z.1)
+      nlinarith [Real.rpow_nonneg hdiv ((1 : ℝ) / 3)]
+    have hg0 : 0 ≤ g z.2 + 1 := by
+      dsimp [g, contactSecantY]
+      have hdiv : 0 ≤ mY r z.2 / mY q z.2 :=
+        div_nonneg ((isPMF_push hr.1).nonneg z.2)
+          ((isPMF_push hq.1).nonneg z.2)
+      nlinarith [Real.rpow_nonneg hdiv ((1 : ℝ) / 3)]
+    have hprod0 : 0 ≤ q z * (f z.1 + 1) * (g z.2 + 1) := by
+      exact mul_nonneg (mul_nonneg (hq.1.nonneg z) hf0) hg0
+    have hf_one :
+        f z.1 + 1 = (mX r z.1 / mX q z.1) ^ ((1 : ℝ) / 3) := by
+      dsimp [f, contactSecantX]
+      ring
+    have hg_one :
+        g z.2 + 1 = (mY r z.2 / mY q z.2) ^ ((1 : ℝ) / 3) := by
+      dsimp [g, contactSecantY]
+      ring
+    rw [hratio z]
+    rw [← hf_one, ← hg_one]
+    have hsq :
+        q z * (q z * (f z.1 + 1) ^ 2 * (g z.2 + 1) ^ 2) =
+          (q z * (f z.1 + 1) * (g z.2 + 1)) ^ 2 := by ring
+    rw [hsq, Real.sqrt_sq_eq_abs, abs_of_nonneg hprod0]
+  have hBC : BC q r = 1 + μf + μg + R := by
+    unfold BC
+    calc
+      (∑ z, Real.sqrt (q z * r z)) =
+          ∑ z, q z * (f z.1 + 1) * (g z.2 + 1) := by
+        apply Finset.sum_congr rfl
+        intro z _
+        exact hsqrt_tilt z
+      _ = ∑ z, (q z + q z * f z.1 + q z * g z.2 +
+          q z * f z.1 * g z.2) := by
+        apply Finset.sum_congr rfl
+        intro z _
+        ring
+      _ = 1 + μf + μg + R := by
+        simp only [Finset.sum_add_distrib]
+        rw [← sum_push_mul Prod.fst q f, ← sum_push_mul Prod.snd q g,
+          show (∑ z, q z) = 1 by simpa [mass] using hq.1.total]
+  change hellingerSq q r = 2 * (A + B) - 2 * R
+  rw [hellingerSq_eq_two_mul_one_sub_BC hq.1 hr.1, hBC]
+  linarith
+
+/-- The secant cross term is at most half the total secant energy. -/
+theorem two_mul_contactSecantCross_le_energy
+    {q r : α × β → ℝ} (hq : IsPMF q) :
+    2 * contactSecantCross q r ≤ contactSecantEnergy q r := by
+  let f : α → ℝ := contactSecantX q r
+  let g : β → ℝ := contactSecantY q r
+  change 2 * (∑ z, q z * f z.1 * g z.2) ≤
+    (∑ x, mX q x * f x ^ 2) + ∑ y, mY q y * g y ^ 2
+  calc
+    2 * (∑ z, q z * f z.1 * g z.2) =
+        ∑ z, 2 * (q z * f z.1 * g z.2) := by rw [Finset.mul_sum]
+    _ ≤ ∑ z, (q z * f z.1 ^ 2 + q z * g z.2 ^ 2) := by
+      apply Finset.sum_le_sum
+      intro z _
+      have hq0 := hq.nonneg z
+      nlinarith [mul_nonneg hq0 (sq_nonneg (f z.1 - g z.2))]
+    _ = (∑ x, mX q x * f x ^ 2) + ∑ y, mY q y * g y ^ 2 := by
+      rw [Finset.sum_add_distrib, ← sum_push_mul Prod.fst q (fun x => f x ^ 2),
+        ← sum_push_mul Prod.snd q (fun y => g y ^ 2)]
+
+/-- For a common-contact pair, total marginal secant energy is bounded by
+the squared Hellinger distance with constant one. -/
+theorem contactSecantEnergy_le_hellingerSq
+    {S : Finset (α × β)} {w q r : α × β → ℝ}
+    (hq : IsContact S w q) (hr : IsContact S w r)
+    (hqs : support q = S) (hrs : support r = S) :
+    contactSecantEnergy q r ≤ hellingerSq q r := by
+  rw [hellingerSq_eq_two_contactSecantEnergy_sub_two_cross hq hr hqs hrs]
+  linarith [two_mul_contactSecantCross_le_energy (r := r) hq.1]
+
+/-- The exact-secant witness argument after its only quantitative input has
+been isolated: the sum of the two marginal secant energies is at most
+`2 * η²`.  Both the historical `L³` route and the sharper `L²` contact route
+instantiate this common core. -/
+theorem contact_secant_hgr_witness
+    (η : ℝ) (_hη : 0 < η) (hη1 : 2 * η ^ 2 < 1)
+    {S : Finset (α × β)} {w q r : α × β → ℝ}
+    (_hw : Feasible S w) (hq : IsContact S w q) (hr : IsContact S w r)
     (hqs : support q = S) (hrs : support r = S) (hne : q ≠ r)
-    (hclose : hellingerSq q r ≤ delta1771) :
-    rho1771 ≤ rhoHGR q := by
+    (henergy :
+      (∑ x, mX q x *
+          ((mX r x / mX q x) ^ ((1 : ℝ) / 3) - 1) ^ 2) +
+        ∑ y, mY q y *
+          ((mY r y / mY q y) ^ ((1 : ℝ) / 3) - 1) ^ 2 ≤
+        2 * η ^ 2) :
+    ∃ s t g : ℝ,
+      0 < s ∧ s < 1 ∧ s ≤ 2 * η ^ 2 ∧ 0 < t ∧
+      t ≤ s / 2 - s ^ 2 / 4 ∧
+      s * (1 - s) / 4 ≤ g ∧
+      s - hellingerSq q r / 2 - s ^ 2 / 4 ≤ g ∧
+      (s - hellingerSq q r / 2) ^ 2 ≤ 3 * s - 2 * hellingerSq q r ∧
+      g / t ≤ rhoHGR q := by
   let f : α → ℝ := fun x =>
     (mX r x / mX q x) ^ ((1 : ℝ) / 3) - 1
   let g : β → ℝ := fun y =>
     (mY r y / mY q y) ^ ((1 : ℝ) / 3) - 1
-  let af : ℝ := normThree (mX q) f
-  let ag : ℝ := normThree (mY q) g
-  let a : ℝ := normTwo (mX q) f
-  let b : ℝ := normTwo (mY q) g
   let A : ℝ := ∑ x, mX q x * f x ^ 2
   let B : ℝ := ∑ y, mY q y * g y ^ 2
   let R : ℝ := ∑ z, q z * f z.1 * g z.2
@@ -3559,48 +3759,18 @@ private theorem rho1771_le_rhoHGR_of_contacts
     dsimp [B]
     exact Finset.sum_nonneg fun y _ =>
       mul_nonneg (hqY.nonneg y) (sq_nonneg _)
+  have ha_sq : normTwo (mX q) f ^ 2 = A := by
+    rw [normTwo_sq hqX.nonneg, moment_two_eq hqX.nonneg]
+  have hb_sq : normTwo (mY q) g ^ 2 = B := by
+    rw [normTwo_sq hqY.nonneg, moment_two_eq hqY.nonneg]
   have hE40 : 0 ≤ E4 := by
     dsimp [E4]
     exact Finset.sum_nonneg fun z _ =>
       mul_nonneg (mul_nonneg (hq.1.nonneg z) (sq_nonneg _)) (sq_nonneg _)
-  have hsmall := ratio_root_smallness_hellinger hq.1 hr.1
-  have haf0 : 0 ≤ af := normThree_nonneg hqX.nonneg f
-  have hag0 : 0 ≤ ag := normThree_nonneg hqY.nonneg g
-  have hafcube : af ^ 3 = moment (mX q) 3 f :=
-    normThree_cube hqX.nonneg f
-  have hagcube : ag ^ 3 = moment (mY q) 3 g :=
-    normThree_cube hqY.nonneg g
-  have haf3 : af ^ 3 ≤ eta1771 ^ 3 := by
-    rw [hafcube]
-    exact hsmall.1.trans (hclose.trans_eq delta1771_eq)
-  have hag3 : ag ^ 3 ≤ eta1771 ^ 3 := by
-    rw [hagcube]
-    exact hsmall.2.trans (hclose.trans_eq delta1771_eq)
-  have haf_le : af ≤ eta1771 := by
-    exact (pow_le_pow_iff_left₀ haf0 eta1771_pos.le
-      (by norm_num : (3 : ℕ) ≠ 0)).mp haf3
-  have hag_le : ag ≤ eta1771 := by
-    exact (pow_le_pow_iff_left₀ hag0 eta1771_pos.le
-      (by norm_num : (3 : ℕ) ≠ 0)).mp hag3
-  have ha0 : 0 ≤ a := normTwo_nonneg hqX.nonneg f
-  have hb0 : 0 ≤ b := normTwo_nonneg hqY.nonneg g
-  have ha_le : a ≤ eta1771 := (normTwo_le_normThree hqX f).trans haf_le
-  have hb_le : b ≤ eta1771 := (normTwo_le_normThree hqY g).trans hag_le
-  have ha_sq : a ^ 2 = A := by
-    rw [normTwo_sq hqX.nonneg, moment_two_eq hqX.nonneg]
-  have hb_sq : b ^ 2 = B := by
-    rw [normTwo_sq hqY.nonneg, moment_two_eq hqY.nonneg]
-  have hA_le : A ≤ eta1771 ^ 2 := by
-    rw [← ha_sq]
-    exact pow_le_pow_left₀ ha0 ha_le 2
-  have hB_le : B ≤ eta1771 ^ 2 := by
-    rw [← hb_sq]
-    exact pow_le_pow_left₀ hb0 hb_le 2
-  have hAB_le : A + B ≤ 2 * eta1771 ^ 2 := by linarith
+  have hAB_le : A + B ≤ 2 * η ^ 2 := by
+    simpa [A, B, f, g] using henergy
   have hAB_lt_one : A + B < 1 := by
-    have heta : 2 * eta1771 ^ 2 < 1 := by
-      norm_num [eta1771_eq]
-    exact hAB_le.trans_lt heta
+    exact hAB_le.trans_lt hη1
   have hsec :
       (∀ x, mX q x * f x =
         2 * (∑ y, q (x, y) * g y) + ∑ y, q (x, y) * g y ^ 2) ∧
@@ -3920,8 +4090,10 @@ private theorem rho1771_le_rhoHGR_of_contacts
     nlinarith only [ha₀sq, sq_nonneg μf]
   have hb₀sq_le : b₀ ^ 2 ≤ B := by
     nlinarith only [hb₀sq, sq_nonneg μg]
-  have hab_upper : a₀ * b₀ ≤ (A + B) / 2 := by
-    nlinarith only [ha₀sq_le, hb₀sq_le, sq_nonneg (a₀ - b₀)]
+  have hab_upper : a₀ * b₀ ≤ (A + B) / 2 - (A + B) ^ 2 / 4 := by
+    rw [hμf] at ha₀sq
+    rw [hμg] at hb₀sq
+    nlinarith only [ha₀sq, hb₀sq, sq_nonneg (a₀ - b₀), sq_nonneg (A - B)]
   let fn : α → ℝ := fun x => f₀ x / a₀
   let gn : β → ℝ := fun y => g₀ y / b₀
   have hfn0 : ∑ x, mX q x * fn x = 0 := by
@@ -3975,21 +4147,157 @@ private theorem rho1771_le_rhoHGR_of_contacts
         rw [Finset.sum_div]
       _ = Γ / (a₀ * b₀) := by rw [hΓ_joint]
   have habpos : 0 < a₀ * b₀ := mul_pos ha₀pos hb₀pos
-  have hcorr_lower : (1 - A - B) / 2 ≤ Γ / (a₀ * b₀) := by
-    apply (le_div_iff₀ habpos).2
-    calc
-      (1 - A - B) / 2 * (a₀ * b₀) ≤
-          (1 - A - B) / 2 * ((A + B) / 2) :=
-        mul_le_mul_of_nonneg_left hab_upper (by linarith [hAB_lt_one])
-      _ = (A + B) * (1 - A - B) / 4 := by ring
-      _ ≤ Γ := hΓ_lower
+  have hhellinger : hellingerSq q r = 2 * (A + B) - 2 * R := by
+    simpa only [contactSecantEnergy, contactSecantCross, contactSecantX,
+      contactSecantY, A, B, R, f, g] using
+      hellingerSq_eq_two_contactSecantEnergy_sub_two_cross hq hr hqs hrs
+  have hE4_bound : R ^ 2 ≤ E4 := by
+    have hvar := sq_nonneg
+      (normTwo q (centered q (fun z => f z.1 * g z.2)))
+    rw [normTwo_centered_sq hq.1, normTwo_sq hq.1.nonneg,
+      moment_two_eq hq.1.nonneg] at hvar
+    apply sub_nonneg.mp
+    simpa only [weightedMean, R, E4, mul_pow, mul_assoc] using hvar
+  have hRδ : R = (A + B) - hellingerSq q r / 2 := by linarith
+  have hE4δ : E4 = 3 * (A + B) - 2 * hellingerSq q r := by linarith
+  have hquartic : ((A + B) - hellingerSq q r / 2) ^ 2 ≤
+      3 * (A + B) - 2 * hellingerSq q r := by
+    rw [← hRδ, ← hE4δ]
+    exact hE4_bound
+  have hΓ_hellinger : (A + B) - hellingerSq q r / 2 - (A + B) ^ 2 / 4 ≤ Γ := by
+    dsimp [Γ]
+    linarith [hμ_product]
   have hwitness := correlation_le_rhoHGR hq.1 hfn0 hgn0 hfn2 hgn2
   rw [hcorr_norm] at hwitness
-  calc
-    rho1771 = 1 / 2 - eta1771 ^ 2 := rho1771_eq
-    _ ≤ (1 - A - B) / 2 := by linarith [hAB_le]
-    _ ≤ Γ / (a₀ * b₀) := hcorr_lower
-    _ ≤ rhoHGR q := hwitness
+  have hΓ_lower' : (A + B) * (1 - (A + B)) / 4 ≤ Γ := by
+    nlinarith only [hΓ_lower]
+  exact ⟨A + B, a₀ * b₀, Γ, hABpos, hAB_lt_one, hAB_le,
+    habpos, hab_upper, hΓ_lower', hΓ_hellinger, hquartic, hwitness⟩
+
+private theorem rho_le_rhoHGR_of_contacts_of_secant_energy
+    (η : ℝ) (hη : 0 < η) (hη1 : 2 * η ^ 2 < 1)
+    {S : Finset (α × β)} {w q r : α × β → ℝ}
+    (hw : Feasible S w) (hq : IsContact S w q) (hr : IsContact S w r)
+    (hqs : support q = S) (hrs : support r = S) (hne : q ≠ r)
+    (henergy :
+      (∑ x, mX q x *
+          ((mX r x / mX q x) ^ ((1 : ℝ) / 3) - 1) ^ 2) +
+        ∑ y, mY q y *
+          ((mY r y / mY q y) ^ ((1 : ℝ) / 3) - 1) ^ 2 ≤
+        2 * η ^ 2) :
+    1 / 2 - η ^ 2 ≤ rhoHGR q := by
+  obtain ⟨s, t, g, hs0, hs1, hsη, ht0, hts, hgs, _, _, hρ⟩ :=
+    contact_secant_hgr_witness η hη hη1 hw hq hr hqs hrs hne henergy
+  have ht : t ≤ s / 2 := by nlinarith [sq_nonneg s]
+  have hc : 0 ≤ 1 / 2 - η ^ 2 := by linarith
+  have hmul := mul_le_mul_of_nonneg_left ht hc
+  have hprod : 0 ≤ s * (2 * η ^ 2 - s) :=
+    mul_nonneg hs0.le (by linarith)
+  apply le_trans _ hρ
+  apply (le_div_iff₀ ht0).2
+  nlinarith
+
+/-- Parametric `q`-oriented exact-secant rigidity through the historical
+`L³` estimate: squared Hellinger distance at most `η³` forces HGR maximal
+correlation at least `1/2 - η²` at the first contact. -/
+theorem rho_le_rhoHGR_of_contacts_param
+    (η : ℝ) (hη : 0 < η) (hη1 : 2 * η ^ 2 < 1)
+    {S : Finset (α × β)} {w q r : α × β → ℝ}
+    (hw : Feasible S w) (hq : IsContact S w q) (hr : IsContact S w r)
+    (hqs : support q = S) (hrs : support r = S) (hne : q ≠ r)
+    (hclose : hellingerSq q r ≤ η ^ 3) :
+    1 / 2 - η ^ 2 ≤ rhoHGR q := by
+  let f : α → ℝ := fun x =>
+    (mX r x / mX q x) ^ ((1 : ℝ) / 3) - 1
+  let g : β → ℝ := fun y =>
+    (mY r y / mY q y) ^ ((1 : ℝ) / 3) - 1
+  let af : ℝ := normThree (mX q) f
+  let ag : ℝ := normThree (mY q) g
+  let a : ℝ := normTwo (mX q) f
+  let b : ℝ := normTwo (mY q) g
+  let A : ℝ := ∑ x, mX q x * f x ^ 2
+  let B : ℝ := ∑ y, mY q y * g y ^ 2
+  have hqX : IsPMF (mX q) := isPMF_push hq.1
+  have hqY : IsPMF (mY q) := isPMF_push hq.1
+  have hsmall := ratio_root_smallness_hellinger hq.1 hr.1
+  have haf0 : 0 ≤ af := normThree_nonneg hqX.nonneg f
+  have hag0 : 0 ≤ ag := normThree_nonneg hqY.nonneg g
+  have hafcube : af ^ 3 = moment (mX q) 3 f :=
+    normThree_cube hqX.nonneg f
+  have hagcube : ag ^ 3 = moment (mY q) 3 g :=
+    normThree_cube hqY.nonneg g
+  have haf3 : af ^ 3 ≤ η ^ 3 := by
+    rw [hafcube]
+    exact hsmall.1.trans hclose
+  have hag3 : ag ^ 3 ≤ η ^ 3 := by
+    rw [hagcube]
+    exact hsmall.2.trans hclose
+  have haf_le : af ≤ η := by
+    exact (pow_le_pow_iff_left₀ haf0 hη.le
+      (by norm_num : (3 : ℕ) ≠ 0)).mp haf3
+  have hag_le : ag ≤ η := by
+    exact (pow_le_pow_iff_left₀ hag0 hη.le
+      (by norm_num : (3 : ℕ) ≠ 0)).mp hag3
+  have ha0 : 0 ≤ a := normTwo_nonneg hqX.nonneg f
+  have hb0 : 0 ≤ b := normTwo_nonneg hqY.nonneg g
+  have ha_le : a ≤ η := (normTwo_le_normThree hqX f).trans haf_le
+  have hb_le : b ≤ η := (normTwo_le_normThree hqY g).trans hag_le
+  have ha_sq : a ^ 2 = A := by
+    rw [normTwo_sq hqX.nonneg, moment_two_eq hqX.nonneg]
+  have hb_sq : b ^ 2 = B := by
+    rw [normTwo_sq hqY.nonneg, moment_two_eq hqY.nonneg]
+  have hA_le : A ≤ η ^ 2 := by
+    rw [← ha_sq]
+    exact pow_le_pow_left₀ ha0 ha_le 2
+  have hB_le : B ≤ η ^ 2 := by
+    rw [← hb_sq]
+    exact pow_le_pow_left₀ hb0 hb_le 2
+  have henergy :
+      (∑ x, mX q x *
+          ((mX r x / mX q x) ^ ((1 : ℝ) / 3) - 1) ^ 2) +
+        ∑ y, mY q y *
+          ((mY r y / mY q y) ^ ((1 : ℝ) / 3) - 1) ^ 2 ≤
+        2 * η ^ 2 := by
+    change A + B ≤ 2 * η ^ 2
+    linarith
+  exact rho_le_rhoHGR_of_contacts_of_secant_energy η hη hη1
+    hw hq hr hqs hrs hne henergy
+
+/-- **L² exact-secant rigidity.** Two distinct contacts of a common feasible
+kernel, on common support, that are within squared Hellinger distance
+`2 * η²` have HGR correlation at least `1/2 - η²`. -/
+theorem rho_le_rhoHGR_of_contacts_param_l2
+    (η : ℝ) (hη : 0 < η) (hη1 : 2 * η ^ 2 < 1)
+    {S : Finset (α × β)} {w q r : α × β → ℝ}
+    (hw : Feasible S w) (hq : IsContact S w q) (hr : IsContact S w r)
+    (hqs : support q = S) (hrs : support r = S) (hne : q ≠ r)
+    (hclose : hellingerSq q r ≤ 2 * η ^ 2) :
+    1 / 2 - η ^ 2 ≤ rhoHGR q := by
+  have henergy0 : contactSecantEnergy q r ≤ hellingerSq q r :=
+    contactSecantEnergy_le_hellingerSq hq hr hqs hrs
+  have henergyBound : contactSecantEnergy q r ≤ 2 * η ^ 2 :=
+    henergy0.trans hclose
+  have henergy :
+      (∑ x, mX q x *
+          ((mX r x / mX q x) ^ ((1 : ℝ) / 3) - 1) ^ 2) +
+        ∑ y, mY q y *
+          ((mY r y / mY q y) ^ ((1 : ℝ) / 3) - 1) ^ 2 ≤
+        2 * η ^ 2 := by
+    simpa [contactSecantEnergy, contactSecantX, contactSecantY] using
+      henergyBound
+  exact rho_le_rhoHGR_of_contacts_of_secant_energy η hη hη1
+    hw hq hr hqs hrs hne henergy
+
+private theorem rho1771_le_rhoHGR_of_contacts
+    {S : Finset (α × β)} {w q r : α × β → ℝ}
+    (hw : Feasible S w) (hq : IsContact S w q) (hr : IsContact S w r)
+    (hqs : support q = S) (hrs : support r = S) (hne : q ≠ r)
+    (hclose : hellingerSq q r ≤ delta1771) :
+    rho1771 ≤ rhoHGR q := by
+  rw [rho1771_eq]
+  exact rho_le_rhoHGR_of_contacts_param eta1771 eta1771_pos
+    (by norm_num [eta1771_eq]) hw hq hr hqs hrs hne
+    (by simpa only [delta1771_eq] using hclose)
 
 private lemma hgr_hellinger_fraction_mono {a b : ℝ}
     (ha0 : 0 ≤ a) (hab : a ≤ b) :

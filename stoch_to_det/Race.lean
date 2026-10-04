@@ -1,5 +1,11 @@
 import stoch_to_det.Scalar
 import stoch_to_det.Cone
+import stoch_to_det.SharedRace.Definitions
+import stoch_to_det.SharedRace.ClockLaw
+import stoch_to_det.SharedRace.CoordinateBound
+import stoch_to_det.SharedRace.ReferenceLoss
+import stoch_to_det.SharedRace.EntropyAssembly
+import stoch_to_det.SharedRace.PairClockLaw
 import Mathlib.InformationTheory.KullbackLeibler.ChainRule
 import Mathlib.InformationTheory.KullbackLeibler.DataProcessing
 import Mathlib.Probability.ProductMeasure
@@ -95,14 +101,14 @@ private instance clusterFiberNonempty {p : α × β → ℝ} {D : SeedSetup p}
   exact ⟨⟨ℓ, hℓ⟩⟩
 
 /-- The within-cluster winner `W_c`. -/
-private noncomputable def groupedWithinWinner {p : α × β → ℝ}
+noncomputable def groupedWithinWinner {p : α × β → ℝ}
     {D : SeedSetup p} (K : Clustering D) (ε : D.L.ι → ℝ) (c : K.κ) :
     clusterFiber K c :=
   Classical.choose (Finite.exists_max fun u : clusterFiber K c =>
     Real.log (D.L.prior u.1 / K.s c) + ε u.1)
 
 /-- The grouped Gumbel `G̃_c = max_{ℓ∈c}(log π_{ℓ|c}+ε_ℓ)`. -/
-private noncomputable def groupedG {p : α × β → ℝ}
+noncomputable def groupedG {p : α × β → ℝ}
     {D : SeedSetup p} (K : Clustering D) (ε : D.L.ι → ℝ) (c : K.κ) : ℝ :=
   Real.log (D.L.prior (groupedWithinWinner K ε c).1 / K.s c) +
     ε (groupedWithinWinner K ε c).1
@@ -124,7 +130,7 @@ private noncomputable def groupedClusterWinner {p : α × β → ℝ}
     Real.log (K.sigma c z) + G c)
 
 /-- The two-stage label winner `(B,W_B)`. -/
-private noncomputable def groupedLabelWinner {p : α × β → ℝ}
+noncomputable def groupedLabelWinner {p : α × β → ℝ}
     {D : SeedSetup p} (K : Clustering D) (ε : D.L.ι → ℝ)
     (z : α × β) : D.L.ι :=
   if z ∈ support p then
@@ -247,7 +253,7 @@ private noncomputable def raceSeedLeak {p : α × β → ℝ}
     (fun (aℓ₀ : D.L.ι × D.L.ι) => seedContextMarginal D aℓ₀.1 aℓ₀.2)
 
 /-- `H(A_ε ∣ L₀)` averaged over the shared-Gumbel seed. -/
-private noncomputable def raceWinnerEntropy {p : α × β → ℝ}
+noncomputable def raceWinnerEntropy {p : α × β → ℝ}
     (D : SeedSetup p) : ℝ :=
   ∫ ε, condH (fun w => winner D ε w.2) Prod.fst D.L.joint
     ∂(seedLaw D.L.ι)
@@ -261,7 +267,7 @@ private noncomputable def raceCone {p : α × β → ℝ}
 
 /-- The fixed-seed integrand whose average is `Rcell D`.  Naming it here keeps
 the fusion and integration parts of `rcell_le` separate. -/
-private noncomputable def raceCellIntegrand {p : α × β → ℝ}
+noncomputable def raceCellIntegrand {p : α × β → ℝ}
     (D : SeedSetup p) (ε : D.L.ι → ℝ) : ℝ :=
   ∑ a, ∑ b, D.L.prior b *
     (∑ z ∈ cell D ε a, D.L.comp b z) *
@@ -2358,7 +2364,7 @@ private lemma grouped_block_law {p : α × β → ℝ} {D : SeedSetup p}
     seedLaw_eq_pi_gumbel1, hreindex, hcurry]
 
 /-- Lemma 7.2(a), first part: the grouped maxima are iid standard Gumbels. -/
-private theorem grouped_gumbel_law {p : α × β → ℝ} {D : SeedSetup p}
+theorem grouped_gumbel_law {p : α × β → ℝ} {D : SeedSetup p}
     (K : Clustering D) :
     Measure.map (groupedG K) (seedLaw D.L.ι) = seedLaw K.κ := by
   let block : (D.L.ι → ℝ) →
@@ -2674,7 +2680,7 @@ private noncomputable def groupedReconstruct {p : α × β → ℝ}
   -Real.log ((D.L.prior ℓ / K.s (K.cl ℓ)) *
     (q.2 (K.cl ℓ) ⟨ℓ, rfl⟩ + Real.exp (-q.1 (K.cl ℓ))))
 
-private lemma groupedPair_measurable {p : α × β → ℝ}
+lemma groupedPair_measurable {p : α × β → ℝ}
     {D : SeedSetup p} (K : Clustering D) : Measurable (groupedPair K) := by
   have hG : Measurable (groupedG K) := by
     apply measurable_pi_lambda
@@ -2784,7 +2790,7 @@ private lemma klDiv_map_groupedPair {p : α × β → ℝ}
 
 /-- Lemma 7.2(b): away from the null tie set, maximizing first inside each
 cluster and then over clusters gives exactly the original label winner. -/
-private theorem grouped_winner_agrees_ae {p : α × β → ℝ}
+theorem grouped_winner_agrees_ae {p : α × β → ℝ}
     (D : SeedSetup p) (K : Clustering D) :
     (fun ε => winner D ε) =ᵐ[seedLaw D.L.ι]
       fun ε => groupedLabelWinner K ε := by
@@ -2839,7 +2845,7 @@ private theorem grouped_winner_agrees_ae {p : α × β → ℝ}
     exact hlabel
   · simp [groupedLabelWinner, hz]
 
-private noncomputable def groupedClusterLexWinner {p : α × β → ℝ}
+noncomputable def groupedClusterLexWinner {p : α × β → ℝ}
     {D : SeedSetup p} (K : Clustering D) (G : K.κ → ℝ)
     (z : α × β) : K.κ :=
   weightedLexWinner (fun c => K.sigma c z) G
@@ -7937,6 +7943,1853 @@ private lemma map_weightedLosingExcess_scale
   funext i
   exact map_mul_expMeasure (ht i.1)
 
+/-- Reassemble a distinguished clock and the remaining coordinates into one
+full clock vector. -/
+private noncomputable def winnerClockJoin
+    {κ : Type} [DecidableEq κ] (a : κ)
+    (sr : ℝ × ({i : κ // i ≠ a} → ℝ)) : κ → ℝ :=
+  fun i => if h : i = a then sr.1 else sr.2 ⟨i, h⟩
+
+private lemma winnerClockJoin_measurable
+    {κ : Type} [Fintype κ] [DecidableEq κ] (a : κ) :
+    Measurable (winnerClockJoin a) := by
+  apply measurable_pi_lambda
+  intro i
+  by_cases hi : i = a
+  · simp only [winnerClockJoin, hi, dite_true]
+    exact measurable_fst
+  · simp only [winnerClockJoin, hi, dite_false]
+    exact (measurable_pi_apply (⟨i, hi⟩ : {j : κ // j ≠ a})).comp measurable_snd
+
+/-- A fresh distinguished `Exp(1)` clock together with fresh iid losing
+clocks is just the original iid clock vector. -/
+private lemma winnerClockJoin_law
+    {κ : Type} [Fintype κ] [DecidableEq κ] (a : κ) :
+    Measure.map (winnerClockJoin a)
+        ((expMeasure 1).prod
+          (Measure.pi fun _ : {i : κ // i ≠ a} => expMeasure 1)) =
+      clockLaw κ := by
+  letI : IsProbabilityMeasure (expMeasure 1) :=
+    isProbabilityMeasure_expMeasure zero_lt_one
+  let loseμ : Measure ({i : κ // i ≠ a} → ℝ) :=
+    Measure.pi fun _ : {i : κ // i ≠ a} => expMeasure 1
+  letI : IsProbabilityMeasure loseμ := by
+    dsimp [loseμ]
+    infer_instance
+  let e : Option {i : κ // i ≠ a} ≃ κ := Equiv.optionSubtypeNe a
+  let f := (MeasurableEquiv.piOptionEquivProd
+    (fun _ : Option {i : κ // i ≠ a} => ℝ)).symm
+  let g := MeasurableEquiv.piCongrLeft (fun _ : κ => ℝ) e
+  let q := loseμ.prod (expMeasure 1)
+  have hfirst :
+      Measure.map f q =
+        Measure.pi (fun _ : Option {i : κ // i ≠ a} => expMeasure 1) := by
+    dsimp [f, q, loseμ]
+    exact Measure.pi_map_piOptionEquivProd
+      (fun _ : Option {i : κ // i ≠ a} => expMeasure 1)
+  have hsecond :
+      Measure.map g
+          (Measure.pi (fun _ : Option {i : κ // i ≠ a} => expMeasure 1)) =
+        Measure.pi (fun _ : κ => expMeasure 1) := by
+    dsimp [g]
+    simpa [e] using Measure.pi_map_piCongrLeft e
+      (fun _ : κ => expMeasure 1)
+  have hmap : Measure.map (g ∘ f) q = clockLaw κ := by
+    unfold clockLaw
+    calc
+      Measure.map (g ∘ f) q = Measure.map g (Measure.map f q) :=
+        (Measure.map_map g.measurable f.measurable).symm
+      _ = _ := by rw [hfirst, hsecond]
+  have hjoinSwap : winnerClockJoin a ∘ Prod.swap = g ∘ f := by
+    funext xy i
+    have hfPair := (MeasurableEquiv.piOptionEquivProd
+      (fun _ : Option {j : κ // j ≠ a} => ℝ)).apply_symm_apply xy
+    by_cases hi : i = a
+    · subst i
+      have hfNone : f xy none = xy.2 := congrArg Prod.snd hfPair
+      dsimp only [Function.comp_apply, winnerClockJoin]
+      simp only [dite_true]
+      dsimp [g]
+      rw [MeasurableEquiv.coe_piCongrLeft, Equiv.piCongrLeft_apply]
+      simp [e, hfNone]
+    · have hfSome : f xy (some ⟨i, hi⟩) = xy.1 ⟨i, hi⟩ :=
+        congrFun (congrArg Prod.fst hfPair) ⟨i, hi⟩
+      dsimp only [Function.comp_apply, winnerClockJoin]
+      simp only [hi, dite_false]
+      dsimp [g]
+      rw [MeasurableEquiv.coe_piCongrLeft, Equiv.piCongrLeft_apply]
+      simp [e, Equiv.optionSubtypeNe_symm_of_ne hi, hfSome]
+  change Measure.map (winnerClockJoin a) ((expMeasure 1).prod loseμ) = _
+  calc
+    Measure.map (winnerClockJoin a) ((expMeasure 1).prod loseμ) =
+        Measure.map (winnerClockJoin a) (Measure.map Prod.swap q) := by
+      rw [Measure.prod_swap]
+    _ = Measure.map (winnerClockJoin a ∘ Prod.swap) q :=
+      Measure.map_map (winnerClockJoin_measurable a) measurable_swap
+    _ = Measure.map (g ∘ f) q := by rw [hjoinSwap]
+    _ = clockLaw κ := hmap
+
+/-- On the cell where `a` wins, remove the common weighted-race minimum from
+every losing raw clock and retain that minimum in coordinate `a`. -/
+noncomputable def winnerResidualClock
+    {κ : Type} [DecidableEq κ] (t : κ → ℝ) (a : κ)
+    (E : κ → ℝ) : κ → ℝ :=
+  fun i => if _h : i = a then E a / t a else E i - t i * (E a / t a)
+
+lemma winnerResidualClock_measurable
+    {κ : Type} [Fintype κ] [DecidableEq κ]
+    (t : κ → ℝ) (a : κ) :
+    Measurable (winnerResidualClock t a) := by
+  have hea : Measurable (fun E : κ → ℝ => E a) := measurable_pi_apply a
+  have hratio : Measurable (fun E : κ → ℝ => E a / t a) :=
+    hea.div measurable_const
+  apply measurable_pi_lambda
+  intro i
+  by_cases hi : i = a
+  · simpa only [winnerResidualClock, hi, dite_true] using hratio
+  · have hei : Measurable (fun E : κ → ℝ => E i) := measurable_pi_apply i
+    have hmul : Measurable (fun E : κ → ℝ => t i * (E a / t a)) := by
+      fun_prop
+    simp only [winnerResidualClock, hi, dite_false]
+    exact hei.sub hmul
+
+/-- Fixed-winner exponential memorylessness in full-vector form.  The
+residual vector consists of fresh iid `Exp(1)` clocks, with total mass equal
+to the probability `t a` of the winner cell. -/
+theorem winnerResidualClock_restrict_law
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (t : κ → ℝ) (ht : ∀ i, 0 < t i) (htotal : ∑ i, t i = 1)
+    (a : κ) :
+    Measure.map (winnerResidualClock t a)
+        ((clockLaw κ).restrict {E | strictClockWin t a E}) =
+      ENNReal.ofReal (t a) • clockLaw κ := by
+  let ρ : Measure ({i : κ // i ≠ a} → ℝ) :=
+    weightedLosingExcessLaw t a
+  let loseμ : Measure ({i : κ // i ≠ a} → ℝ) :=
+    Measure.pi fun _ : {i : κ // i ≠ a} => expMeasure 1
+  let A : Measure ℝ := ENNReal.ofReal (t a) • expMeasure 1
+  let embed : ({i : κ // i ≠ a} → ℝ) → κ → ℝ := insertWinnerZero a
+  let norm : (κ → ℝ) → ℝ × (κ → ℝ) := fun E =>
+    (E a / t a, fun i => E i / t i - E a / t a)
+  let out : (ℝ × (κ → ℝ)) → κ → ℝ := fun sr i =>
+    if i = a then sr.1 else t i * sr.2 i
+  let assemble : (ℝ × ({i : κ // i ≠ a} → ℝ)) → κ → ℝ := fun sr i =>
+    if h : i = a then sr.1 else t i * sr.2 ⟨i, h⟩
+  let loseScale : ({i : κ // i ≠ a} → ℝ) →
+      ({i : κ // i ≠ a} → ℝ) := fun R i => t i.1 * R i
+  let scale : (ℝ × ({i : κ // i ≠ a} → ℝ)) →
+      ℝ × ({i : κ // i ≠ a} → ℝ) := Prod.map id loseScale
+  have hnorm : Measurable norm := by fun_prop
+  have hout : Measurable out := by
+    apply measurable_pi_lambda
+    intro i
+    by_cases hi : i = a
+    · simpa only [out, hi, if_true] using
+        (measurable_fst : Measurable
+          (fun sr : ℝ × (κ → ℝ) => sr.1))
+    · have hcoord : Measurable
+          (fun sr : ℝ × (κ → ℝ) => sr.2 i) :=
+        (measurable_pi_apply i).comp measurable_snd
+      have hmul : Measurable (fun sr : ℝ × (κ → ℝ) => t i * sr.2 i) := by
+        fun_prop
+      simpa only [out, hi, if_false] using hmul
+  have hembed : Measurable embed := insertWinnerZero_measurable a
+  have hassemble : Measurable assemble := by
+    apply measurable_pi_lambda
+    intro i
+    by_cases hi : i = a
+    · simpa only [assemble, hi, dite_true] using
+        (measurable_fst : Measurable
+          (fun sr : ℝ × ({j : κ // j ≠ a} → ℝ) => sr.1))
+    · have hcoord : Measurable
+          (fun sr : ℝ × ({j : κ // j ≠ a} → ℝ) => sr.2 ⟨i, hi⟩) :=
+        (measurable_pi_apply (⟨i, hi⟩ : {j : κ // j ≠ a})).comp measurable_snd
+      have hmul : Measurable
+          (fun sr : ℝ × ({j : κ // j ≠ a} → ℝ) => t i * sr.2 ⟨i, hi⟩) := by
+        fun_prop
+      simpa only [assemble, hi, dite_false] using hmul
+  have hloseScale : Measurable loseScale := by fun_prop
+  have hscale : Measurable scale := measurable_id.prodMap hloseScale
+  have hresidualNorm : winnerResidualClock t a = out ∘ norm := by
+    funext E i
+    by_cases hi : i = a
+    · subst i
+      simp [winnerResidualClock, out, norm]
+    · simp only [winnerResidualClock, hi, dite_false, Function.comp_apply,
+        out, norm, if_false]
+      field_simp [(ht i).ne', (ht a).ne']
+  have houtEmbed : out ∘ Prod.map id embed = assemble := by
+    funext sr i
+    by_cases hi : i = a
+    · subst i
+      simp [out, assemble]
+    · simp [out, assemble, embed, insertWinnerZero, hi]
+  have hassembleScale : assemble = winnerClockJoin a ∘ scale := by
+    funext sr i
+    by_cases hi : i = a
+    · subst i
+      simp [assemble, winnerClockJoin, scale]
+    · simp [assemble, winnerClockJoin, scale, loseScale, hi]
+  letI : IsProbabilityMeasure (expMeasure 1) :=
+    isProbabilityMeasure_expMeasure zero_lt_one
+  letI (i : {i : κ // i ≠ a}) : IsProbabilityMeasure
+      (expMeasure (t i.1)) := isProbabilityMeasure_expMeasure (ht i.1)
+  letI : IsProbabilityMeasure ρ := by
+    dsimp [ρ, weightedLosingExcessLaw]
+    infer_instance
+  letI : IsProbabilityMeasure loseμ := by
+    dsimp [loseμ]
+    infer_instance
+  letI : SFinite A := by
+    dsimp [A]
+    infer_instance
+  have hscaleLaw : Measure.map scale (A.prod ρ) = A.prod loseμ := by
+    calc
+      Measure.map scale (A.prod ρ) =
+          (Measure.map id A).prod (Measure.map loseScale ρ) := by
+        exact (Measure.map_prod_map A ρ measurable_id hloseScale).symm
+      _ = A.prod loseμ := by
+        rw [Measure.map_id]
+        congr 1
+        dsimp only [loseScale, ρ, loseμ]
+        exact map_weightedLosingExcess_scale t ht a
+  have hAprod : A.prod loseμ =
+      ENNReal.ofReal (t a) • ((expMeasure 1).prod loseμ) := by
+    dsimp only [A]
+    rw [Measure.prod_smul_left]
+  calc
+    Measure.map (winnerResidualClock t a)
+        ((clockLaw κ).restrict {E | strictClockWin t a E}) =
+        Measure.map out
+          (Measure.map norm
+            ((clockLaw κ).restrict {E | strictClockWin t a E})) := by
+      rw [hresidualNorm]
+      exact (Measure.map_map hout hnorm).symm
+    _ = Measure.map out
+        (A.prod (Measure.map embed ρ)) := by
+      rw [clock_min_excess_restrict_factorization t ht htotal a]
+    _ = Measure.map assemble (A.prod ρ) := by
+      calc
+        Measure.map out (A.prod (Measure.map embed ρ)) =
+            Measure.map out ((Measure.map id A).prod (Measure.map embed ρ)) := by
+          rw [Measure.map_id]
+        _ = Measure.map out
+            (Measure.map (Prod.map id embed) (A.prod ρ)) := by
+          rw [← Measure.map_prod_map A ρ measurable_id hembed]
+        _ = Measure.map (out ∘ Prod.map id embed) (A.prod ρ) :=
+          Measure.map_map hout (measurable_id.prodMap hembed)
+        _ = Measure.map assemble (A.prod ρ) := by rw [houtEmbed]
+    _ = Measure.map (winnerClockJoin a) (Measure.map scale (A.prod ρ)) := by
+      rw [hassembleScale]
+      exact (Measure.map_map (winnerClockJoin_measurable a) hscale).symm
+    _ = Measure.map (winnerClockJoin a) (A.prod loseμ) := by
+      rw [hscaleLaw]
+    _ = Measure.map (winnerClockJoin a)
+        (ENNReal.ofReal (t a) • ((expMeasure 1).prod loseμ)) := by
+      rw [hAprod]
+    _ = ENNReal.ofReal (t a) •
+        Measure.map (winnerClockJoin a) ((expMeasure 1).prod loseμ) := by
+      rw [Measure.map_smul]
+    _ = ENNReal.ofReal (t a) • clockLaw κ := by
+      rw [show Measure.map (winnerClockJoin a)
+          ((expMeasure 1).prod loseμ) = clockLaw κ by
+        dsimp only [loseμ]
+        exact winnerClockJoin_law a]
+
+@[simp] lemma winnerResidualClock_apply_winner
+    {κ : Type} [DecidableEq κ] (t : κ → ℝ) (a : κ) (E : κ → ℝ) :
+    winnerResidualClock t a E a = E a / t a := by
+  simp [winnerResidualClock]
+
+lemma winnerResidualClock_apply_loser
+    {κ : Type} [DecidableEq κ] (t : κ → ℝ) (a i : κ)
+    (hi : i ≠ a) (E : κ → ℝ) :
+    winnerResidualClock t a E i = E i - t i * (E a / t a) := by
+  simp [winnerResidualClock, hi]
+
+/-- Raw-clock reconstruction from the fresh residual vector. -/
+lemma winnerResidualClock_reconstruct
+    {κ : Type} [DecidableEq κ] (t : κ → ℝ) (ht : ∀ i, 0 < t i)
+    (a i : κ) (E : κ → ℝ) :
+    E i = t i * winnerResidualClock t a E a +
+      if i = a then 0 else winnerResidualClock t a E i := by
+  by_cases hi : i = a
+  · subst i
+    rw [winnerResidualClock_apply_winner]
+    simp
+    field_simp [(ht a).ne']
+  · rw [winnerResidualClock_apply_winner,
+      winnerResidualClock_apply_loser t a i hi E]
+    simp [hi]
+
+/-- The residual transformation preserves the total raw clock.  Hence every
+simplex-normalized coordinate may use the same denominator before and after
+conditioning on the winner. -/
+private lemma sum_winnerResidualClock
+    {κ : Type} [Fintype κ] [DecidableEq κ]
+    (t : κ → ℝ) (ht : ∀ i, 0 < t i) (htotal : ∑ i, t i = 1)
+    (a : κ) (E : κ → ℝ) :
+    ∑ i, winnerResidualClock t a E i = ∑ i, E i := by
+  let W : κ → ℝ := winnerResidualClock t a E
+  let m : ℝ := E a / t a
+  have hWwinner : W a = m := by
+    dsimp only [W, m]
+    exact winnerResidualClock_apply_winner t a E
+  have hWloser (i : κ) (hi : i ∈ (univ : Finset κ).erase a) :
+      W i = E i - t i * m := by
+    have hne : i ≠ a := by
+      simpa using (Finset.mem_erase.mp hi).1
+    dsimp only [W, m]
+    exact winnerResidualClock_apply_loser t a i hne E
+  have htErase : (∑ i ∈ (univ : Finset κ).erase a, t i) = 1 - t a := by
+    have h := Finset.sum_erase_add (univ : Finset κ) t (Finset.mem_univ a)
+    rw [htotal] at h
+    linarith
+  have hEa : t a * m = E a := by
+    dsimp only [m]
+    field_simp [(ht a).ne']
+  have hWErase := Finset.sum_erase_add (univ : Finset κ) W
+    (Finset.mem_univ a)
+  have hEErase := Finset.sum_erase_add (univ : Finset κ) E
+    (Finset.mem_univ a)
+  calc
+    (∑ i, winnerResidualClock t a E i) =
+        (∑ i ∈ (univ : Finset κ).erase a, W i) + W a := by
+      change (∑ i, W i) = _
+      exact hWErase.symm
+    _ = (∑ i ∈ (univ : Finset κ).erase a, (E i - t i * m)) + m := by
+      rw [hWwinner]
+      apply congrArg (fun x : ℝ => x + m)
+      apply Finset.sum_congr rfl
+      exact hWloser
+    _ = (∑ i ∈ (univ : Finset κ).erase a, E i) -
+          (∑ i ∈ (univ : Finset κ).erase a, t i) * m + m := by
+      rw [Finset.sum_sub_distrib, Finset.sum_mul]
+    _ = (∑ i ∈ (univ : Finset κ).erase a, E i) + E a := by
+      rw [htErase, ← hEa]
+      ring
+    _ = ∑ i, E i := hEErase
+
+private lemma normalized_winner_eq_residual
+    {κ : Type} [Fintype κ] [DecidableEq κ]
+    (t : κ → ℝ) (ht : ∀ i, 0 < t i) (htotal : ∑ i, t i = 1)
+    (a : κ) (E : κ → ℝ) :
+    E a / (∑ i, E i) =
+      t a * (winnerResidualClock t a E a /
+        ∑ i, winnerResidualClock t a E i) := by
+  have hEa : E a = t a * winnerResidualClock t a E a := by
+    simpa using winnerResidualClock_reconstruct t ht a a E
+  rw [hEa, ← sum_winnerResidualClock t ht htotal a E]
+  ring
+
+private lemma normalized_loser_eq_residual
+    {κ : Type} [Fintype κ] [DecidableEq κ]
+    (t : κ → ℝ) (ht : ∀ i, 0 < t i) (htotal : ∑ i, t i = 1)
+    (a i : κ) (hi : i ≠ a) (E : κ → ℝ) :
+    E i / (∑ j, E j) =
+      (t i * winnerResidualClock t a E a + winnerResidualClock t a E i) /
+        ∑ j, winnerResidualClock t a E j := by
+  have hEi := winnerResidualClock_reconstruct t ht a i E
+  simp only [hi, if_false] at hEi
+  rw [hEi, ← sum_winnerResidualClock t ht htotal a E]
+
+private lemma weighted_ratio_loser_eq_residual
+    {κ : Type} [DecidableEq κ]
+    (t : κ → ℝ) (ht : ∀ i, 0 < t i)
+    (a i : κ) (hi : i ≠ a) (E : κ → ℝ) :
+    (E a / t a) * t i / E i =
+      t i * winnerResidualClock t a E a /
+        (t i * winnerResidualClock t a E a + winnerResidualClock t a E i) := by
+  have hEi := winnerResidualClock_reconstruct t ht a i E
+  simp only [hi, if_false] at hEi
+  rw [hEi, winnerResidualClock_apply_winner]
+  ring
+
+/-! ### Normalized clock moments on the fixed-winner cells -/
+
+/-- A strict weighted-clock winner is also the lexicographic minimizer used
+by the normalized shared-race quantities. Strictness makes the tie-break
+irrelevant. -/
+lemma clockArgmin_eq_of_strictClockWin
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (t E : κ → ℝ) (a : κ) (ha : strictClockWin t a E) :
+    SharedRace.clockArgmin t E = a := by
+  by_contra hne
+  have hmax := lexMax_max (fun E i => -(E i / t i)) E a
+  have hstrict := ha (SharedRace.clockArgmin t E) hne
+  change -(E a / t a) ≤
+    -(E (SharedRace.clockArgmin t E) /
+      t (SharedRace.clockArgmin t E)) at hmax
+  linarith
+
+private lemma rawRaceMin_eq_of_strictClockWin
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (t E : κ → ℝ) (a : κ) (ha : strictClockWin t a E) :
+    SharedRace.rawRaceMin t E = E a / t a := by
+  unfold SharedRace.rawRaceMin
+  rw [clockArgmin_eq_of_strictClockWin t E a ha]
+
+/-- On a fixed winner cell, the normalized race minimum is the normalized
+winner coordinate of the fresh residual clock. -/
+private lemma normRaceMin_eq_residual
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (t : κ → ℝ) (ht : ∀ i, 0 < t i) (htotal : ∑ i, t i = 1)
+    (a : κ) (E : κ → ℝ) (ha : strictClockWin t a E) :
+    SharedRace.normRaceMin t E =
+      SharedRace.normClock (winnerResidualClock t a E) a := by
+  unfold SharedRace.normRaceMin SharedRace.normClock SharedRace.clockTotal
+  rw [rawRaceMin_eq_of_strictClockWin t E a ha,
+    winnerResidualClock_apply_winner,
+    sum_winnerResidualClock t ht htotal a E]
+
+/-- The original winning normalized coordinate is its prior mass times the
+fresh residual normalized coordinate. -/
+private lemma normClock_winner_eq_residual
+    {κ : Type} [Fintype κ] [DecidableEq κ]
+    (t : κ → ℝ) (ht : ∀ i, 0 < t i) (htotal : ∑ i, t i = 1)
+    (a : κ) (E : κ → ℝ) :
+    SharedRace.normClock E a =
+      t a * SharedRace.normClock (winnerResidualClock t a E) a := by
+  unfold SharedRace.normClock SharedRace.clockTotal
+  exact normalized_winner_eq_residual t ht htotal a E
+
+/-- The original losing normalized coordinate after removing the common
+race minimum. -/
+private lemma normClock_loser_eq_residual
+    {κ : Type} [Fintype κ] [DecidableEq κ]
+    (t : κ → ℝ) (ht : ∀ i, 0 < t i) (htotal : ∑ i, t i = 1)
+    (a i : κ) (hi : i ≠ a) (E : κ → ℝ) :
+    SharedRace.normClock E i =
+      (t i * winnerResidualClock t a E a +
+          winnerResidualClock t a E i) /
+        SharedRace.clockTotal (winnerResidualClock t a E) := by
+  unfold SharedRace.normClock SharedRace.clockTotal
+  exact normalized_loser_eq_residual t ht htotal a i hi E
+
+/-- The shared-race ratio on a losing coordinate, written in the
+fresh residual clocks. -/
+lemma raceRatio_loser_eq_residual
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (t : κ → ℝ) (ht : ∀ i, 0 < t i)
+    (a i : κ) (hi : i ≠ a) (E : κ → ℝ)
+    (ha : strictClockWin t a E) :
+    SharedRace.raceRatio t E i =
+      t i * winnerResidualClock t a E a /
+        (t i * winnerResidualClock t a E a +
+          winnerResidualClock t a E i) := by
+  unfold SharedRace.raceRatio
+  rw [rawRaceMin_eq_of_strictClockWin t E a ha]
+  exact weighted_ratio_loser_eq_residual t ht a i hi E
+
+private lemma measurable_clockArgmin_fixed
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    [MeasurableSpace κ] [MeasurableSingletonClass κ]
+    (t : κ → ℝ) : Measurable (SharedRace.clockArgmin t) := by
+  unfold SharedRace.clockArgmin
+  apply measurable_lexMax
+  intro i
+  change Measurable (fun E : κ → ℝ => -(E i / t i))
+  fun_prop
+
+private lemma measurable_rawRaceMin_fixed
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (t : κ → ℝ) : Measurable (SharedRace.rawRaceMin t) := by
+  letI : MeasurableSpace κ := ⊤
+  let a : (κ → ℝ) → κ := SharedRace.clockArgmin t
+  let v : (κ → ℝ) → ℝ := fun E =>
+    ∑ i, if a E = i then E i / t i else 0
+  have ha : Measurable a := measurable_clockArgmin_fixed t
+  have hv : Measurable v := by
+    dsimp only [v]
+    apply Finset.measurable_sum
+    intro i _
+    exact Measurable.ite
+      (measurableSet_singleton i |>.preimage ha)
+      (by
+        change Measurable (fun E : κ → ℝ => E i / t i)
+        fun_prop)
+      measurable_const
+  have heq : SharedRace.rawRaceMin t = v := by
+    funext E
+    unfold SharedRace.rawRaceMin
+    dsimp only [v, a]
+    simp
+  rw [heq]
+  exact hv
+
+private lemma measurable_normRaceMin_fixed
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (t : κ → ℝ) : Measurable (SharedRace.normRaceMin t) := by
+  unfold SharedRace.normRaceMin
+  exact (measurable_rawRaceMin_fixed t).div SharedRace.measurable_clockTotal
+
+private lemma measurable_raceRatio_fixed
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (t : κ → ℝ) (i : κ) : Measurable (fun E => SharedRace.raceRatio t E i) := by
+  unfold SharedRace.raceRatio
+  exact ((measurable_rawRaceMin_fixed t).mul measurable_const).div
+    (measurable_pi_apply i)
+
+namespace SharedRace
+
+/-- The one-coordinate moment whose finite sum controls the normalized race
+partition function. -/
+noncomputable def clockCoordinateIntegrand
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (t : κ → ℝ) (i : κ) (E : κ → ℝ) : ℝ :=
+  raceRatio t E i ^ 2 *
+    Real.exp ((Fintype.card κ : ℝ) * SharedRace.logTwo *
+      (normClock E i - normRaceMin t E))
+
+lemma measurable_clockCoordinateIntegrand
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (t : κ → ℝ) (i : κ) : Measurable (clockCoordinateIntegrand t i) := by
+  unfold clockCoordinateIntegrand normClock
+  exact ((measurable_raceRatio_fixed t i).pow_const 2).mul
+    (Real.measurable_exp.comp
+      (measurable_const.mul
+        (((measurable_pi_apply i).div measurable_clockTotal).sub
+          (measurable_normRaceMin_fixed t))))
+
+/-- The one-coordinate normalized race moment is integrable.  The proof uses
+only positivity of the clocks and the uniform bounds `raceRatio ≤ 1` and
+`normClock ≤ 1`. -/
+theorem clockCoordinateIntegrand_integrable
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (t : κ → ℝ) (ht : ∀ i, 0 < t i) (i : κ) :
+    Integrable (clockCoordinateIntegrand t i) (clockLaw κ) := by
+  let C : ℝ := Real.exp
+    ((Fintype.card κ : ℝ) * SharedRace.logTwo)
+  have hstrong : AEStronglyMeasurable
+      (clockCoordinateIntegrand t i) (clockLaw κ) :=
+    (measurable_clockCoordinateIntegrand t i).aestronglyMeasurable
+  apply Integrable.of_bound hstrong C
+  filter_upwards [ae_clockLaw_pos (κ := κ)] with E hE
+  have hratio0 : 0 < raceRatio t E i := raceRatio_pos t E ht hE i
+  have hratio1 : raceRatio t E i ≤ 1 := raceRatio_le_one t E ht hE i
+  have hsq : raceRatio t E i ^ 2 ≤ 1 := by nlinarith
+  have hmin0 : 0 ≤ normRaceMin t E := by
+    unfold normRaceMin
+    exact div_nonneg (rawRaceMin_pos t E ht hE).le (clockTotal_pos E hE).le
+  have hcoord1 : normClock E i ≤ 1 := normClock_le_one E hE i
+  have hdiff : normClock E i - normRaceMin t E ≤ 1 := by linarith
+  have hc0 : 0 ≤ (Fintype.card κ : ℝ) * SharedRace.logTwo :=
+    mul_nonneg (by positivity) SharedRace.L_pos.le
+  have hexp :
+      Real.exp ((Fintype.card κ : ℝ) * SharedRace.logTwo *
+          (normClock E i - normRaceMin t E)) ≤ C := by
+    apply Real.exp_le_exp.mpr
+    exact mul_le_of_le_one_right hc0 hdiff
+  rw [Real.norm_eq_abs, abs_of_nonneg]
+  · exact (mul_le_mul_of_nonneg_right hsq (Real.exp_nonneg _)).trans
+      (by simpa only [one_mul] using hexp)
+  · exact mul_nonneg (sq_nonneg _) (Real.exp_nonneg _)
+
+end SharedRace
+
+lemma strictClockWin_measurableSet
+    {κ : Type} [Fintype κ] [DecidableEq κ]
+    (t : κ → ℝ) (a : κ) :
+    MeasurableSet {E : κ → ℝ | strictClockWin t a E} := by
+  unfold strictClockWin
+  measurability
+
+private lemma strictClockWin_pairwise_disjoint
+    {κ : Type} [Fintype κ] [DecidableEq κ]
+    (t : κ → ℝ) : Pairwise fun a b : κ => Disjoint
+      {E : κ → ℝ | strictClockWin t a E}
+      {E : κ → ℝ | strictClockWin t b E} := by
+  intro a b hab
+  rw [Set.disjoint_left]
+  intro E ha hb
+  have hab' := ha b hab.symm
+  have hba' := hb a hab
+  linarith
+
+/-- The strict winner cells exhaust iid exponential clocks up to a null set.
+This is the measure-level partition used by all subsequent cellwise moment
+identities. -/
+private theorem clockLaw_eq_sum_restrict_strictClockWin
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (t : κ → ℝ) (ht : ∀ i, 0 < t i) (htotal : ∑ i, t i = 1) :
+    clockLaw κ = Measure.sum fun a : κ =>
+      (clockLaw κ).restrict {E | strictClockWin t a E} := by
+  letI : IsProbabilityMeasure (expMeasure 1) :=
+    isProbabilityMeasure_expMeasure zero_lt_one
+  letI : IsProbabilityMeasure (clockLaw κ) := by
+    unfold clockLaw
+    infer_instance
+  let S : κ → Set (κ → ℝ) := fun a => {E | strictClockWin t a E}
+  have hS (a : κ) : MeasurableSet (S a) :=
+    strictClockWin_measurableSet t a
+  have hdisj : Pairwise fun a b => Disjoint (S a) (S b) :=
+    strictClockWin_pairwise_disjoint t
+  have hcell (a : κ) : clockLaw κ (S a) = ENNReal.ofReal (t a) := by
+    unfold clockLaw S
+    exact pi_exp_strictClockWin t ht htotal a
+  have hmass : clockLaw κ (⋃ a, S a) = 1 := by
+    rw [measure_iUnion hdisj hS, tsum_fintype]
+    simp_rw [hcell]
+    rw [← ENNReal.ofReal_sum_of_nonneg (fun a _ => (ht a).le), htotal]
+    norm_num
+  have hUnion : ∀ᵐ E ∂(clockLaw κ), E ∈ ⋃ a, S a :=
+    (mem_ae_iff_prob_eq_one (MeasurableSet.iUnion hS)).2 hmass
+  calc
+    clockLaw κ = (clockLaw κ).restrict (⋃ a, S a) :=
+      (Measure.restrict_eq_self_of_ae_mem hUnion).symm
+    _ = Measure.sum fun a : κ => (clockLaw κ).restrict (S a) :=
+      Measure.restrict_iUnion hdisj hS
+
+lemma integral_clock_eq_sum_strictClockWin
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (t : κ → ℝ) (ht : ∀ i, 0 < t i) (htotal : ∑ i, t i = 1)
+    (f : (κ → ℝ) → ℝ) (hf : Integrable f (clockLaw κ)) :
+    (∫ E, f E ∂(clockLaw κ)) =
+      ∑ a, ∫ E, f E
+        ∂((clockLaw κ).restrict {E | strictClockWin t a E}) := by
+  have hdecomp := clockLaw_eq_sum_restrict_strictClockWin t ht htotal
+  have hsumInt : Integrable f (Measure.sum fun a : κ =>
+      (clockLaw κ).restrict {E | strictClockWin t a E}) := by
+    rw [← hdecomp]
+    exact hf
+  calc
+    (∫ E, f E ∂(clockLaw κ)) =
+        ∫ E, f E ∂(Measure.sum fun a : κ =>
+          (clockLaw κ).restrict {E | strictClockWin t a E}) :=
+      congrArg (fun μ : Measure (κ → ℝ) => ∫ E, f E ∂μ) hdecomp
+    _ = ∑ a, ∫ E, f E
+          ∂((clockLaw κ).restrict {E | strictClockWin t a E}) := by
+      simpa only [tsum_fintype] using integral_sum_measure hsumInt
+
+/-- Integrating a measurable residual-clock statistic on one strict winner
+cell gives the winner mass times its expectation under fresh iid clocks. -/
+lemma integral_comp_winnerResidualClock
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (t : κ → ℝ) (ht : ∀ i, 0 < t i) (htotal : ∑ i, t i = 1)
+    (a : κ) (f : (κ → ℝ) → ℝ) (hf : Measurable f) :
+    (∫ E, f (winnerResidualClock t a E)
+        ∂((clockLaw κ).restrict {E | strictClockWin t a E})) =
+      t a * ∫ W, f W ∂(clockLaw κ) := by
+  have hmap := winnerResidualClock_restrict_law t ht htotal a
+  calc
+    (∫ E, f (winnerResidualClock t a E)
+        ∂((clockLaw κ).restrict {E | strictClockWin t a E})) =
+        ∫ W, f W ∂Measure.map (winnerResidualClock t a)
+          ((clockLaw κ).restrict {E | strictClockWin t a E}) :=
+      (integral_map (winnerResidualClock_measurable t a).aemeasurable
+        hf.aestronglyMeasurable).symm
+    _ = ∫ W, f W ∂ENNReal.ofReal (t a) • clockLaw κ := by rw [hmap]
+    _ = (ENNReal.ofReal (t a)).toReal • ∫ W, f W ∂clockLaw κ := by
+      rw [integral_smul_measure]
+    _ = t a * ∫ W, f W ∂clockLaw κ := by
+      rw [ENNReal.toReal_ofReal (ht a).le]
+      rfl
+
+/-- Integrability companion to `integral_comp_winnerResidualClock`. -/
+lemma integrable_comp_winnerResidualClock
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (t : κ → ℝ) (ht : ∀ i, 0 < t i) (htotal : ∑ i, t i = 1)
+    (a : κ) (f : (κ → ℝ) → ℝ) (hf : Integrable f (clockLaw κ)) :
+    Integrable (fun E => f (winnerResidualClock t a E))
+      ((clockLaw κ).restrict {E | strictClockWin t a E}) := by
+  have hmap := winnerResidualClock_restrict_law t ht htotal a
+  have hscaled : Integrable f (ENNReal.ofReal (t a) • clockLaw κ) :=
+    hf.smul_measure (by simp)
+  rw [← hmap] at hscaled
+  exact hscaled.comp_measurable (winnerResidualClock_measurable t a)
+
+private lemma clockCoordinateIntegrand_winner_eq
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (t : κ → ℝ) (ht : ∀ i, 0 < t i) (htotal : ∑ i, t i = 1)
+    (a : κ) (E : κ → ℝ) (hE : ∀ i, 0 < E i)
+    (ha : strictClockWin t a E) :
+    SharedRace.clockCoordinateIntegrand t a E =
+      Real.exp ((-SharedRace.logTwo * (1 - t a)) *
+        ((Fintype.card κ : ℝ) *
+          SharedRace.normClock (winnerResidualClock t a E) a)) := by
+  have hratio : SharedRace.raceRatio t E a = 1 := by
+    unfold SharedRace.raceRatio
+    rw [rawRaceMin_eq_of_strictClockWin t E a ha]
+    field_simp [(ht a).ne', (hE a).ne']
+  rw [SharedRace.clockCoordinateIntegrand, hratio, one_pow, one_mul,
+    normClock_winner_eq_residual t ht htotal a E,
+    normRaceMin_eq_residual t ht htotal a E ha]
+  congr 1
+  ring
+
+/-- Exact winning-cell contribution to the one-coordinate moment. -/
+private theorem clockCoordinate_winnerCell_integral_eq
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (t : κ → ℝ) (ht : ∀ i, 0 < t i) (htotal : ∑ i, t i = 1)
+    (hk : 2 ≤ Fintype.card κ) (a : κ) :
+    (∫ E, SharedRace.clockCoordinateIntegrand t a E
+        ∂((clockLaw κ).restrict {E | strictClockWin t a E})) =
+      t a * SharedRace.betaOneExpMoment (Fintype.card κ)
+        (-SharedRace.logTwo * (1 - t a)) := by
+  let f : (κ → ℝ) → ℝ := fun W =>
+    Real.exp ((-SharedRace.logTwo * (1 - t a)) *
+      ((Fintype.card κ : ℝ) * SharedRace.normClock W a))
+  have hf : Measurable f := by
+    dsimp only [f]
+    exact Real.measurable_exp.comp
+      (measurable_const.mul
+        (measurable_const.mul (SharedRace.measurable_normClock a)))
+  have hpoint :
+      (fun E => SharedRace.clockCoordinateIntegrand t a E) =ᵐ[
+        (clockLaw κ).restrict {E | strictClockWin t a E}]
+      fun E => f (winnerResidualClock t a E) := by
+    filter_upwards [ae_restrict_of_ae (SharedRace.ae_clockLaw_pos (κ := κ)),
+      ae_restrict_mem (strictClockWin_measurableSet t a)] with E hE ha
+    exact clockCoordinateIntegrand_winner_eq t ht htotal a E hE ha
+  calc
+    (∫ E, SharedRace.clockCoordinateIntegrand t a E
+        ∂((clockLaw κ).restrict {E | strictClockWin t a E})) =
+        ∫ E, f (winnerResidualClock t a E)
+          ∂((clockLaw κ).restrict {E | strictClockWin t a E}) :=
+      integral_congr_ae hpoint
+    _ = t a * ∫ W, f W ∂clockLaw κ :=
+      integral_comp_winnerResidualClock t ht htotal a f hf
+    _ = t a * SharedRace.betaOneExpMoment (Fintype.card κ)
+          (-SharedRace.logTwo * (1 - t a)) := by
+      congr 1
+      exact SharedRace.clockLaw_scaledNormClock_expMoment_eq a hk
+        (-SharedRace.logTwo * (1 - t a))
+
+/-- Exact winning normalized-clock first moment on one strict winner cell.
+This is retained for the later row identity
+`E[U_argmin] = (sum_i t_i^2) / k`. -/
+private theorem normClock_winnerCell_integral_eq
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (t : κ → ℝ) (ht : ∀ i, 0 < t i) (htotal : ∑ i, t i = 1)
+    (a : κ) :
+    (∫ E, SharedRace.normClock E a
+        ∂((clockLaw κ).restrict {E | strictClockWin t a E})) =
+      t a ^ 2 / (Fintype.card κ : ℝ) := by
+  let f : (κ → ℝ) → ℝ := fun W =>
+    t a * SharedRace.normClock W a
+  have hf : Measurable f :=
+    measurable_const.mul (SharedRace.measurable_normClock a)
+  have hpoint :
+      (fun E => SharedRace.normClock E a) =ᵐ[
+        (clockLaw κ).restrict {E | strictClockWin t a E}]
+      fun E => f (winnerResidualClock t a E) := by
+    filter_upwards [] with E
+    exact normClock_winner_eq_residual t ht htotal a E
+  calc
+    (∫ E, SharedRace.normClock E a
+        ∂((clockLaw κ).restrict {E | strictClockWin t a E})) =
+        ∫ E, f (winnerResidualClock t a E)
+          ∂((clockLaw κ).restrict {E | strictClockWin t a E}) :=
+      integral_congr_ae hpoint
+    _ = t a * ∫ W, f W ∂clockLaw κ :=
+      integral_comp_winnerResidualClock t ht htotal a f hf
+    _ = t a * (t a * ∫ W, SharedRace.normClock W a ∂clockLaw κ) := by
+      rw [integral_const_mul]
+    _ = t a * (t a * (1 / (Fintype.card κ : ℝ))) := by
+      rw [SharedRace.integral_normClock a]
+    _ = t a ^ 2 / (Fintype.card κ : ℝ) := by ring
+
+private lemma measurable_normClock_clockArgmin
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (t : κ → ℝ) : Measurable
+      (fun E : κ → ℝ =>
+        SharedRace.normClock E (SharedRace.clockArgmin t E)) := by
+  letI : MeasurableSpace κ := ⊤
+  let a : (κ → ℝ) → κ := SharedRace.clockArgmin t
+  let f : (κ → ℝ) → ℝ := fun E =>
+    ∑ i, if a E = i then SharedRace.normClock E i else 0
+  have ha : Measurable a := measurable_clockArgmin_fixed t
+  have hf : Measurable f := by
+    dsimp only [f]
+    apply Finset.measurable_sum
+    intro i _hi
+    exact Measurable.ite
+      (measurableSet_singleton i |>.preimage ha)
+      (SharedRace.measurable_normClock i) measurable_const
+  have heq : (fun E : κ → ℝ =>
+      SharedRace.normClock E (SharedRace.clockArgmin t E)) = f := by
+    funext E
+    dsimp only [f, a]
+    simp
+  rw [heq]
+  exact hf
+
+private lemma integrable_normClock_clockArgmin
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (t : κ → ℝ) : Integrable
+      (fun E : κ → ℝ =>
+        SharedRace.normClock E (SharedRace.clockArgmin t E))
+      (clockLaw κ) := by
+  apply Integrable.of_bound
+    (measurable_normClock_clockArgmin t).aestronglyMeasurable 1
+  filter_upwards [SharedRace.ae_clockLaw_pos (κ := κ)] with E hE
+  have hnonneg : 0 ≤
+      SharedRace.normClock E (SharedRace.clockArgmin t E) :=
+    SharedRace.normClock_nonneg E hE (SharedRace.clockArgmin t E)
+  rw [Real.norm_eq_abs, abs_of_nonneg hnonneg]
+  exact SharedRace.normClock_le_one E hE (SharedRace.clockArgmin t E)
+
+namespace SharedRace
+
+/-- The normalized clock selected by a positive PMF race has first moment
+`(sum_i r_i^2) / k`.  This is the row moment needed by the reference-loss
+assembly. -/
+theorem integral_normClock_clockArgmin_eq
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (r : κ → ℝ) (hr : ∀ i, 0 < r i) (hrtotal : ∑ i, r i = 1) :
+    (∫ E : κ → ℝ, normClock E (clockArgmin r E) ∂clockLaw κ) =
+      (∑ i, r i ^ 2) / (Fintype.card κ : ℝ) := by
+  rw [integral_clock_eq_sum_strictClockWin r hr hrtotal
+    (fun E : κ → ℝ => normClock E (clockArgmin r E))
+    (integrable_normClock_clockArgmin r)]
+  apply (Finset.sum_congr rfl fun a _ => ?_).trans
+    (Finset.sum_div (s := (univ : Finset κ))
+      (f := fun a => r a ^ 2) (Fintype.card κ : ℝ)).symm
+  calc
+    (∫ E : κ → ℝ, normClock E (clockArgmin r E)
+        ∂((clockLaw κ).restrict {E | strictClockWin r a E})) =
+        ∫ E : κ → ℝ, normClock E a
+          ∂((clockLaw κ).restrict {E | strictClockWin r a E}) := by
+      apply integral_congr_ae
+      filter_upwards [ae_restrict_mem (strictClockWin_measurableSet r a)]
+        with E hwin
+      rw [clockArgmin_eq_of_strictClockWin r E a hwin]
+    _ = r a ^ 2 / (Fintype.card κ : ℝ) :=
+      normClock_winnerCell_integral_eq r hr hrtotal a
+
+private lemma integrable_normRaceMin_cell
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (π : κ → ℝ) (hπ : ∀ i, 0 < π i) (hπtotal : ∑ i, π i = 1)
+    (a : κ) :
+    Integrable (normRaceMin π)
+      ((clockLaw κ).restrict {E | strictClockWin π a E}) := by
+  have hcomp := integrable_comp_winnerResidualClock π hπ hπtotal a
+    (fun W : κ → ℝ => normClock W a) (integrable_normClock a)
+  apply hcomp.congr
+  filter_upwards [ae_restrict_mem (strictClockWin_measurableSet π a)]
+    with E hwin
+  rw [normRaceMin_eq_residual π hπ hπtotal a E hwin]
+
+private theorem integral_normRaceMin_cell_eq
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (π : κ → ℝ) (hπ : ∀ i, 0 < π i) (hπtotal : ∑ i, π i = 1)
+    (a : κ) :
+    (∫ E : κ → ℝ, normRaceMin π E
+        ∂((clockLaw κ).restrict {E | strictClockWin π a E})) =
+      π a / (Fintype.card κ : ℝ) := by
+  calc
+    (∫ E : κ → ℝ, normRaceMin π E
+        ∂((clockLaw κ).restrict {E | strictClockWin π a E})) =
+        ∫ E : κ → ℝ, normClock (winnerResidualClock π a E) a
+          ∂((clockLaw κ).restrict {E | strictClockWin π a E}) := by
+      apply integral_congr_ae
+      filter_upwards [ae_restrict_mem (strictClockWin_measurableSet π a)]
+        with E hwin
+      rw [normRaceMin_eq_residual π hπ hπtotal a E hwin]
+    _ = π a * ∫ W : κ → ℝ, normClock W a ∂clockLaw κ :=
+      integral_comp_winnerResidualClock π hπ hπtotal a
+        (fun W : κ → ℝ => normClock W a) (measurable_normClock a)
+    _ = π a * (1 / (Fintype.card κ : ℝ)) := by
+      rw [integral_normClock a]
+    _ = π a / (Fintype.card κ : ℝ) := by ring
+
+/-- Integrability and exact mean of the normalized weighted race minimum. -/
+theorem integrable_normRaceMin
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (π : κ → ℝ) (hπ : ∀ i, 0 < π i) (hπtotal : ∑ i, π i = 1) :
+    Integrable (normRaceMin π) (clockLaw κ) := by
+  have hsum : Integrable (normRaceMin π)
+      (Measure.sum fun a : κ =>
+        (clockLaw κ).restrict {E | strictClockWin π a E}) :=
+    integrable_sum_measure
+      (fun a => integrable_normRaceMin_cell π hπ hπtotal a)
+      Summable.of_finite
+  rw [← clockLaw_eq_sum_restrict_strictClockWin π hπ hπtotal] at hsum
+  exact hsum
+
+theorem integral_normRaceMin_eq_inv_card
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (π : κ → ℝ) (hπ : ∀ i, 0 < π i) (hπtotal : ∑ i, π i = 1) :
+    (∫ E : κ → ℝ, normRaceMin π E ∂clockLaw κ) =
+      1 / (Fintype.card κ : ℝ) := by
+  rw [integral_clock_eq_sum_strictClockWin π hπ hπtotal
+    (normRaceMin π) (integrable_normRaceMin π hπ hπtotal)]
+  simp_rw [integral_normRaceMin_cell_eq π hπ hπtotal]
+  rw [← Finset.sum_div, hπtotal]
+
+private lemma integrable_log_normRaceMin_cell
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (π : κ → ℝ) (hπ : ∀ i, 0 < π i) (hπtotal : ∑ i, π i = 1)
+    (hk : 2 ≤ Fintype.card κ) (a : κ) :
+    Integrable (fun E : κ → ℝ => Real.log (normRaceMin π E))
+      ((clockLaw κ).restrict {E | strictClockWin π a E}) := by
+  have hcomp := integrable_comp_winnerResidualClock π hπ hπtotal a
+    (fun W : κ → ℝ => Real.log (normClock W a))
+    (integrable_log_normClock a hk)
+  apply hcomp.congr
+  filter_upwards [ae_restrict_mem (strictClockWin_measurableSet π a)]
+    with E hwin
+  rw [normRaceMin_eq_residual π hπ hπtotal a E hwin]
+
+private theorem integral_log_normRaceMin_cell_eq
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (π : κ → ℝ) (hπ : ∀ i, 0 < π i) (hπtotal : ∑ i, π i = 1)
+    (hk : 2 ≤ Fintype.card κ) (a : κ) :
+    (∫ E : κ → ℝ, Real.log (normRaceMin π E)
+        ∂((clockLaw κ).restrict {E | strictClockWin π a E})) =
+      π a * normClockLogIntegral (Fintype.card κ) := by
+  calc
+    (∫ E : κ → ℝ, Real.log (normRaceMin π E)
+        ∂((clockLaw κ).restrict {E | strictClockWin π a E})) =
+        ∫ E : κ → ℝ,
+          Real.log (normClock (winnerResidualClock π a E) a)
+          ∂((clockLaw κ).restrict {E | strictClockWin π a E}) := by
+      apply integral_congr_ae
+      filter_upwards [ae_restrict_mem (strictClockWin_measurableSet π a)]
+        with E hwin
+      rw [normRaceMin_eq_residual π hπ hπtotal a E hwin]
+    _ = π a * ∫ W : κ → ℝ, Real.log (normClock W a) ∂clockLaw κ :=
+      integral_comp_winnerResidualClock π hπ hπtotal a
+        (fun W : κ → ℝ => Real.log (normClock W a))
+        (Real.measurable_log.comp (measurable_normClock a))
+    _ = π a * normClockLogIntegral (Fintype.card κ) := by
+      rw [integral_log_normClock_eq_normClockLogIntegral a hk]
+
+/-- The normalized minimum of a positive PMF race has the same logarithmic
+mean as any normalized iid clock coordinate. -/
+theorem integrable_log_normRaceMin
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (π : κ → ℝ) (hπ : ∀ i, 0 < π i) (hπtotal : ∑ i, π i = 1)
+    (hk : 2 ≤ Fintype.card κ) :
+    Integrable (fun E : κ → ℝ => Real.log (normRaceMin π E))
+      (clockLaw κ) := by
+  have hsum : Integrable (fun E : κ → ℝ => Real.log (normRaceMin π E))
+      (Measure.sum fun a : κ =>
+        (clockLaw κ).restrict {E | strictClockWin π a E}) :=
+    integrable_sum_measure
+      (fun a => integrable_log_normRaceMin_cell π hπ hπtotal hk a)
+      Summable.of_finite
+  rw [← clockLaw_eq_sum_restrict_strictClockWin π hπ hπtotal] at hsum
+  exact hsum
+
+theorem integral_log_normRaceMin_eq_normClockLogIntegral
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (π : κ → ℝ) (hπ : ∀ i, 0 < π i) (hπtotal : ∑ i, π i = 1)
+    (hk : 2 ≤ Fintype.card κ) :
+    (∫ E : κ → ℝ, Real.log (normRaceMin π E) ∂clockLaw κ) =
+      normClockLogIntegral (Fintype.card κ) := by
+  rw [integral_clock_eq_sum_strictClockWin π hπ hπtotal
+    (fun E : κ → ℝ => Real.log (normRaceMin π E))
+    (integrable_log_normRaceMin π hπ hπtotal hk)]
+  simp_rw [integral_log_normRaceMin_cell_eq π hπ hπtotal hk]
+  rw [← Finset.sum_mul, hπtotal, one_mul]
+
+private lemma integrable_log_mul_normClock
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (c : ℝ) (hc : 0 < c) (a : κ) (hk : 2 ≤ Fintype.card κ) :
+    Integrable (fun W : κ → ℝ => Real.log (c * normClock W a))
+      (clockLaw κ) := by
+  have heq : (fun W : κ → ℝ => Real.log (c * normClock W a)) =ᵐ[clockLaw κ]
+      fun W => Real.log c + Real.log (normClock W a) := by
+    filter_upwards [ae_clockLaw_pos (κ := κ)] with W hW
+    rw [Real.log_mul hc.ne'
+      ((normClock_nonneg W hW a).lt_of_ne' (by
+        unfold normClock
+        exact div_ne_zero (hW a).ne' (clockTotal_pos W hW).ne')).ne']
+  have hconst : Integrable (fun _ : κ → ℝ => Real.log c) (clockLaw κ) :=
+    integrable_const (Real.log c)
+  exact (hconst.add (integrable_log_normClock a hk)).congr heq.symm
+
+private lemma integral_log_mul_normClock_eq
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (c : ℝ) (hc : 0 < c) (a : κ) (hk : 2 ≤ Fintype.card κ) :
+    (∫ W : κ → ℝ, Real.log (c * normClock W a) ∂clockLaw κ) =
+      Real.log c + normClockLogIntegral (Fintype.card κ) := by
+  have heq : (fun W : κ → ℝ => Real.log (c * normClock W a)) =ᵐ[clockLaw κ]
+      fun W => Real.log c + Real.log (normClock W a) := by
+    filter_upwards [ae_clockLaw_pos (κ := κ)] with W hW
+    rw [Real.log_mul hc.ne'
+      ((normClock_nonneg W hW a).lt_of_ne' (by
+        unfold normClock
+        exact div_ne_zero (hW a).ne' (clockTotal_pos W hW).ne')).ne']
+  have hconst : Integrable (fun _ : κ → ℝ => Real.log c) (clockLaw κ) :=
+    integrable_const (Real.log c)
+  rw [integral_congr_ae heq,
+    integral_add hconst (integrable_log_normClock a hk),
+    integral_const,
+    integral_log_normClock_eq_normClockLogIntegral a hk]
+  simp [Measure.real]
+
+private lemma integrable_log_normClock_argmin_cell
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (r : κ → ℝ) (hr : ∀ i, 0 < r i) (hrtotal : ∑ i, r i = 1)
+    (hk : 2 ≤ Fintype.card κ) (a : κ) :
+    Integrable
+      (fun E : κ → ℝ => Real.log (normClock E (clockArgmin r E)))
+      ((clockLaw κ).restrict {E | strictClockWin r a E}) := by
+  have hcomp := integrable_comp_winnerResidualClock r hr hrtotal a
+    (fun W : κ → ℝ => Real.log (r a * normClock W a))
+    (integrable_log_mul_normClock (r a) (hr a) a hk)
+  apply hcomp.congr
+  filter_upwards [ae_restrict_mem (strictClockWin_measurableSet r a)]
+    with E hwin
+  rw [clockArgmin_eq_of_strictClockWin r E a hwin,
+    normClock_winner_eq_residual r hr hrtotal a E]
+
+private theorem integral_log_normClock_argmin_cell_eq
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (r : κ → ℝ) (hr : ∀ i, 0 < r i) (hrtotal : ∑ i, r i = 1)
+    (hk : 2 ≤ Fintype.card κ) (a : κ) :
+    (∫ E : κ → ℝ, Real.log (normClock E (clockArgmin r E))
+        ∂((clockLaw κ).restrict {E | strictClockWin r a E})) =
+      r a * (Real.log (r a) +
+        normClockLogIntegral (Fintype.card κ)) := by
+  calc
+    (∫ E : κ → ℝ, Real.log (normClock E (clockArgmin r E))
+        ∂((clockLaw κ).restrict {E | strictClockWin r a E})) =
+        ∫ E : κ → ℝ,
+          Real.log (r a * normClock (winnerResidualClock r a E) a)
+          ∂((clockLaw κ).restrict {E | strictClockWin r a E}) := by
+      apply integral_congr_ae
+      filter_upwards [ae_restrict_mem (strictClockWin_measurableSet r a)]
+        with E hwin
+      rw [clockArgmin_eq_of_strictClockWin r E a hwin,
+        normClock_winner_eq_residual r hr hrtotal a E]
+    _ = r a * ∫ W : κ → ℝ,
+        Real.log (r a * normClock W a) ∂clockLaw κ :=
+      integral_comp_winnerResidualClock r hr hrtotal a
+        (fun W : κ → ℝ => Real.log (r a * normClock W a))
+        (Real.measurable_log.comp
+          (measurable_const.mul (measurable_normClock a)))
+    _ = r a * (Real.log (r a) +
+        normClockLogIntegral (Fintype.card κ)) := by
+      rw [integral_log_mul_normClock_eq (r a) (hr a) a hk]
+
+/-- Integrability of the logarithmic normalized winning coordinate. -/
+theorem integrable_log_normClock_clockArgmin
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (r : κ → ℝ) (hr : ∀ i, 0 < r i) (hrtotal : ∑ i, r i = 1)
+    (hk : 2 ≤ Fintype.card κ) :
+    Integrable
+      (fun E : κ → ℝ => Real.log (normClock E (clockArgmin r E)))
+      (clockLaw κ) := by
+  have hsum : Integrable
+      (fun E : κ → ℝ => Real.log (normClock E (clockArgmin r E)))
+      (Measure.sum fun a : κ =>
+        (clockLaw κ).restrict {E | strictClockWin r a E}) :=
+    integrable_sum_measure
+      (fun a => integrable_log_normClock_argmin_cell r hr hrtotal hk a)
+      Summable.of_finite
+  rw [← clockLaw_eq_sum_restrict_strictClockWin r hr hrtotal] at hsum
+  exact hsum
+
+/-- The logarithmic winning-clock row moment.  The universal common clock
+moment is left symbolic because it cancels against the normalized race
+minimum in the reference ratio. -/
+theorem integral_log_normClock_clockArgmin_eq
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (r : κ → ℝ) (hr : ∀ i, 0 < r i) (hrtotal : ∑ i, r i = 1)
+    (hk : 2 ≤ Fintype.card κ) :
+    (∫ E : κ → ℝ, Real.log (normClock E (clockArgmin r E))
+        ∂clockLaw κ) =
+      ∑ i, r i * (Real.log (r i) +
+        normClockLogIntegral (Fintype.card κ)) := by
+  rw [integral_clock_eq_sum_strictClockWin r hr hrtotal
+    (fun E : κ → ℝ => Real.log (normClock E (clockArgmin r E)))
+    (integrable_log_normClock_clockArgmin r hr hrtotal hk)]
+  exact Finset.sum_congr rfl fun a _ =>
+    integral_log_normClock_argmin_cell_eq r hr hrtotal hk a
+
+private lemma measurable_log_coordinate_clockArgmin
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (π r : κ → ℝ) : Measurable
+      (fun E : κ → ℝ => Real.log (π (clockArgmin r E))) := by
+  letI : MeasurableSpace κ := ⊤
+  exact (measurable_of_finite fun i : κ => Real.log (π i)).comp
+    (measurable_clockArgmin_fixed r)
+
+private lemma integrable_log_coordinate_clockArgmin
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (π r : κ → ℝ) : Integrable
+      (fun E : κ → ℝ => Real.log (π (clockArgmin r E)))
+      (clockLaw κ) := by
+  let C : ℝ := ∑ i, |Real.log (π i)|
+  apply Integrable.of_bound
+    (measurable_log_coordinate_clockArgmin π r).aestronglyMeasurable C
+  filter_upwards [] with E
+  rw [Real.norm_eq_abs]
+  exact Finset.single_le_sum (fun i _ => abs_nonneg (Real.log (π i)))
+    (Finset.mem_univ (clockArgmin r E))
+
+private theorem integral_log_coordinate_clockArgmin_eq
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (π r : κ → ℝ) (hr : ∀ i, 0 < r i) (hrtotal : ∑ i, r i = 1) :
+    (∫ E : κ → ℝ, Real.log (π (clockArgmin r E)) ∂clockLaw κ) =
+      ∑ i, r i * Real.log (π i) := by
+  rw [integral_clock_eq_sum_strictClockWin r hr hrtotal
+    (fun E : κ → ℝ => Real.log (π (clockArgmin r E)))
+    (integrable_log_coordinate_clockArgmin π r)]
+  apply Finset.sum_congr rfl
+  intro a _ha
+  calc
+    (∫ E : κ → ℝ, Real.log (π (clockArgmin r E))
+        ∂((clockLaw κ).restrict {E | strictClockWin r a E})) =
+        ∫ _E : κ → ℝ, Real.log (π a)
+          ∂((clockLaw κ).restrict {E | strictClockWin r a E}) := by
+      apply integral_congr_ae
+      filter_upwards [ae_restrict_mem (strictClockWin_measurableSet r a)]
+        with E hwin
+      rw [clockArgmin_eq_of_strictClockWin r E a hwin]
+    _ = r a * ∫ _W : κ → ℝ, Real.log (π a) ∂clockLaw κ :=
+      integral_comp_winnerResidualClock r hr hrtotal a
+        (fun _W : κ → ℝ => Real.log (π a)) measurable_const
+    _ = r a * Real.log (π a) := by simp [Measure.real]
+
+private lemma log_raceRatio_clockArgmin_identity
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (π r E : κ → ℝ) (hπ : ∀ i, 0 < π i) (hE : ∀ i, 0 < E i) :
+    Real.log (raceRatio π E (clockArgmin r E)) =
+      Real.log (normRaceMin π E) +
+        Real.log (π (clockArgmin r E)) -
+          Real.log (normClock E (clockArgmin r E)) := by
+  let a : κ := clockArgmin r E
+  have hraw : 0 < rawRaceMin π E := rawRaceMin_pos π E hπ hE
+  have htotal : 0 < clockTotal E := clockTotal_pos E hE
+  have hcoord : 0 < E a := hE a
+  have hprior : 0 < π a := hπ a
+  change Real.log (raceRatio π E a) =
+    Real.log (normRaceMin π E) + Real.log (π a) -
+      Real.log (normClock E a)
+  unfold raceRatio normRaceMin normClock
+  rw [Real.log_div (mul_ne_zero hraw.ne' hprior.ne') hcoord.ne',
+    Real.log_mul hraw.ne' hprior.ne',
+    Real.log_div hraw.ne' htotal.ne',
+    Real.log_div hcoord.ne' htotal.ne']
+  ring
+
+/-- The logarithmic reference ratio at the winner of an independent positive
+row race is integrable. -/
+theorem integrable_log_raceRatio_clockArgmin
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (π r : κ → ℝ) (hπ : ∀ i, 0 < π i) (hπtotal : ∑ i, π i = 1)
+    (hr : ∀ i, 0 < r i) (hrtotal : ∑ i, r i = 1)
+    (hk : 2 ≤ Fintype.card κ) :
+    Integrable
+      (fun E : κ → ℝ => Real.log (raceRatio π E (clockArgmin r E)))
+      (clockLaw κ) := by
+  have hmin := integrable_log_normRaceMin π hπ hπtotal hk
+  have hprior := integrable_log_coordinate_clockArgmin π r
+  have hwin := integrable_log_normClock_clockArgmin r hr hrtotal hk
+  have hrhs : Integrable (fun E : κ → ℝ =>
+      Real.log (normRaceMin π E) + Real.log (π (clockArgmin r E)) -
+        Real.log (normClock E (clockArgmin r E))) (clockLaw κ) :=
+    (hmin.add hprior).sub hwin
+  apply hrhs.congr
+  filter_upwards [ae_clockLaw_pos (κ := κ)] with E hE
+  exact (log_raceRatio_clockArgmin_identity π r E hπ hE).symm
+
+/-- Exact row identity for the logarithmic winning reference ratio.  The
+common normalized-clock logarithmic moment cancels, leaving the finite
+cross-entropy expression. -/
+theorem integral_log_raceRatio_clockArgmin_eq
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (π r : κ → ℝ) (hπ : ∀ i, 0 < π i) (hπtotal : ∑ i, π i = 1)
+    (hr : ∀ i, 0 < r i) (hrtotal : ∑ i, r i = 1)
+    (hk : 2 ≤ Fintype.card κ) :
+    (∫ E : κ → ℝ,
+      Real.log (raceRatio π E (clockArgmin r E)) ∂clockLaw κ) =
+      ∑ i, r i * Real.log (π i / r i) := by
+  have hmin := integrable_log_normRaceMin π hπ hπtotal hk
+  have hprior := integrable_log_coordinate_clockArgmin π r
+  have hwin := integrable_log_normClock_clockArgmin r hr hrtotal hk
+  have hpoint : (fun E : κ → ℝ =>
+      Real.log (raceRatio π E (clockArgmin r E))) =ᵐ[clockLaw κ]
+      fun E => Real.log (normRaceMin π E) +
+        Real.log (π (clockArgmin r E)) -
+          Real.log (normClock E (clockArgmin r E)) := by
+    filter_upwards [ae_clockLaw_pos (κ := κ)] with E hE
+    exact log_raceRatio_clockArgmin_identity π r E hπ hE
+  have houter :
+      (∫ E : κ → ℝ,
+        (Real.log (normRaceMin π E) + Real.log (π (clockArgmin r E))) -
+          Real.log (normClock E (clockArgmin r E)) ∂clockLaw κ) =
+        (∫ E : κ → ℝ,
+          Real.log (normRaceMin π E) + Real.log (π (clockArgmin r E))
+          ∂clockLaw κ) -
+        ∫ E : κ → ℝ, Real.log (normClock E (clockArgmin r E))
+          ∂clockLaw κ := by
+    simpa only [Pi.add_apply, Pi.sub_apply] using
+      integral_sub (hmin.add hprior) hwin
+  have hinner :
+      (∫ E : κ → ℝ,
+        Real.log (normRaceMin π E) + Real.log (π (clockArgmin r E))
+        ∂clockLaw κ) =
+        (∫ E : κ → ℝ, Real.log (normRaceMin π E) ∂clockLaw κ) +
+        ∫ E : κ → ℝ, Real.log (π (clockArgmin r E)) ∂clockLaw κ := by
+    simpa only [Pi.add_apply] using integral_add hmin hprior
+  rw [integral_congr_ae hpoint, houter, hinner,
+    integral_log_normRaceMin_eq_normClockLogIntegral π hπ hπtotal hk,
+    integral_log_coordinate_clockArgmin_eq π r hr hrtotal,
+    integral_log_normClock_clockArgmin_eq r hr hrtotal hk]
+  have hlog (i : κ) : Real.log (π i / r i) =
+      Real.log (π i) - Real.log (r i) :=
+    Real.log_div (hπ i).ne' (hr i).ne'
+  simp_rw [hlog, mul_add, mul_sub, Finset.sum_add_distrib,
+    Finset.sum_sub_distrib]
+  rw [← Finset.sum_mul, hrtotal, one_mul]
+  ring
+
+/-- Measurability of the normalized race partition function. -/
+theorem measurable_normRaceZ
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (π : κ → ℝ) : Measurable (normRaceZ π) := by
+  unfold normRaceZ
+  apply Finset.measurable_sum
+  intro i _hi
+  exact ((measurable_raceRatio_fixed π i).pow_const 2).mul
+    (Real.measurable_exp.comp
+      (measurable_const.mul (measurable_normClock i)))
+
+private lemma one_le_normRaceZ
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (π E : κ → ℝ) (hπ : ∀ i, 0 < π i) (hE : ∀ i, 0 < E i) :
+    1 ≤ normRaceZ π E := by
+  let a : κ := clockArgmin π E
+  have hterm : 1 ≤ (raceRatio π E a) ^ 2 *
+      Real.exp ((Fintype.card κ : ℝ) * SharedRace.logTwo *
+        normClock E a) := by
+    rw [raceRatio_argmin π E hπ hE, one_pow, one_mul]
+    apply Real.one_le_exp
+    exact mul_nonneg
+      (mul_nonneg (by positivity) SharedRace.L_pos.le)
+      (normClock_nonneg E hE a)
+  exact hterm.trans (Finset.single_le_sum
+    (f := fun i => (raceRatio π E i) ^ 2 *
+      Real.exp ((Fintype.card κ : ℝ) * SharedRace.logTwo *
+        normClock E i))
+    (fun i _ => mul_nonneg (sq_nonneg _) (Real.exp_nonneg _))
+    (Finset.mem_univ a))
+
+/-- The normalized partition-function logarithm is integrable under iid
+exponential clocks. -/
+theorem integrable_log_normRaceZ
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (π : κ → ℝ) (hπ : ∀ i, 0 < π i) :
+    Integrable (fun E : κ → ℝ => Real.log (normRaceZ π E))
+      (clockLaw κ) := by
+  let B : ℝ := (Fintype.card κ : ℝ) *
+    Real.exp ((Fintype.card κ : ℝ) * SharedRace.logTwo)
+  let C : ℝ := Real.log B
+  have hBpos : 0 < B := by
+    dsimp only [B]
+    positivity
+  apply Integrable.of_bound
+    (Real.measurable_log.comp (measurable_normRaceZ π)).aestronglyMeasurable C
+  filter_upwards [ae_clockLaw_pos (κ := κ)] with E hE
+  have hZone : 1 ≤ normRaceZ π E := one_le_normRaceZ π E hπ hE
+  have hZpos : 0 < normRaceZ π E := zero_lt_one.trans_le hZone
+  have hZle : normRaceZ π E ≤ B := by
+    simpa only [B] using normRaceZ_le π E hπ hE
+  have hlogle : Real.log (normRaceZ π E) ≤ C := by
+    dsimp only [C]
+    exact Real.strictMonoOn_log.monotoneOn hZpos hBpos hZle
+  change |Real.log (normRaceZ π E)| ≤ C
+  rw [abs_of_nonneg (Real.log_nonneg hZone)]
+  exact hlogle
+
+/-- Clock-law specialization of the logarithmic tangent, conditional only on
+the coordinate estimates supplied by the winner/loser analysis. -/
+theorem normalizedRaceLogIntegral_le_of_coordinate
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (π : κ → ℝ) (hπ : IsPMF π) (hπpos : ∀ i, 0 < π i)
+    (hk : 2 ≤ Fintype.card κ)
+    (hcoord : ∀ i,
+      (∫ E : κ → ℝ, clockCoordinateIntegrand π i E ∂clockLaw κ) ≤ π i) :
+    (∫ E : κ → ℝ, Real.log (normRaceZ π E) ∂clockLaw κ) ≤
+      SharedRace.logTwo := by
+  have hπtotal : ∑ i, π i = 1 := by simpa [mass] using hπ.total
+  have htint := integrable_normRaceMin π hπpos hπtotal
+  have htmean :
+      (∫ E : κ → ℝ, (Fintype.card κ : ℝ) *
+        SharedRace.logTwo * normRaceMin π E ∂clockLaw κ) =
+        SharedRace.logTwo := by
+    rw [integral_const_mul,
+      integral_normRaceMin_eq_inv_card π hπpos hπtotal]
+    have hkne : (Fintype.card κ : ℝ) ≠ 0 := by positivity
+    field_simp [hkne]
+  apply normalizedRaceLogIntegral_le (clockLaw κ) π hπ
+    (fun E i => raceRatio π E i) (fun E i => normClock E i)
+    (normRaceMin π)
+  · filter_upwards [ae_clockLaw_pos (κ := κ)] with E hE
+    simpa only [normRaceZ] using normRaceZ_pos π E hπpos hE
+  · simpa only [normRaceZ] using integrable_log_normRaceZ π hπpos
+  · exact htint
+  · exact htmean
+  · intro i
+    change Integrable (clockCoordinateIntegrand π i) (clockLaw κ)
+    exact clockCoordinateIntegrand_integrable π hπpos i
+  · intro i
+    change (∫ E : κ → ℝ,
+      clockCoordinateIntegrand π i E ∂clockLaw κ) ≤ π i
+    exact hcoord i
+
+/-- Integrability of the clock-row reference loss at the row winner. -/
+theorem integrable_log_inv_referencePMF_clockArgmin
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (π r : κ → ℝ) (hπ : IsPMF π) (hπpos : ∀ i, 0 < π i)
+    (hr : IsPMF r) (hrpos : ∀ i, 0 < r i)
+    (hk : 2 ≤ Fintype.card κ) :
+    Integrable (fun E : κ → ℝ =>
+      Real.log (1 / referencePMF π E (clockArgmin r E)))
+      (clockLaw κ) := by
+  have hπtotal : ∑ i, π i = 1 := by simpa [mass] using hπ.total
+  have hrtotal : ∑ i, r i = 1 := by simpa [mass] using hr.total
+  have hZ := integrable_log_normRaceZ π hπpos
+  have hratio := integrable_log_raceRatio_clockArgmin
+    π r hπpos hπtotal hrpos hrtotal hk
+  have hclock := integrable_normClock_clockArgmin r
+  have hrhs : Integrable (fun E : κ → ℝ =>
+      Real.log (normRaceZ π E) -
+        2 * Real.log (raceRatio π E (clockArgmin r E)) -
+          (Fintype.card κ : ℝ) * SharedRace.logTwo *
+            normClock E (clockArgmin r E)) (clockLaw κ) :=
+    (hZ.sub (hratio.const_mul 2)).sub
+      (hclock.const_mul
+        ((Fintype.card κ : ℝ) * SharedRace.logTwo))
+  apply hrhs.congr
+  filter_upwards [ae_clockLaw_pos (κ := κ)] with E hE
+  exact (log_inv_referencePMF π E hπpos hE (clockArgmin r E)).symm
+
+/-- Row-wise reference-loss bound, conditional only on the coordinate
+moments.  All logarithmic and winning-clock identities are discharged by the
+literal clock law. -/
+theorem referenceLossIntegral_le_of_coordinate
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (π r : κ → ℝ) (hπ : IsPMF π) (hπpos : ∀ i, 0 < π i)
+    (hr : IsPMF r) (hrpos : ∀ i, 0 < r i)
+    (hk : 2 ≤ Fintype.card κ)
+    (hcoord : ∀ i,
+      (∫ E : κ → ℝ, clockCoordinateIntegrand π i E ∂clockLaw κ) ≤ π i) :
+    (∫ E : κ → ℝ,
+      Real.log (1 / referencePMF π E (clockArgmin r E)) ∂clockLaw κ) ≤
+      2 * (∑ i, r i * Real.log (r i / π i)) +
+        SharedRace.logTwo * (1 - ∑ i, r i ^ 2) := by
+  have hπtotal : ∑ i, π i = 1 := by simpa [mass] using hπ.total
+  have hrtotal : ∑ i, r i = 1 := by simpa [mass] using hr.total
+  apply referenceLossIntegral_le (clockLaw κ) π r id (clockArgmin r)
+    hπpos (ae_clockLaw_pos (κ := κ))
+    (integrable_log_normRaceZ π hπpos)
+    (integrable_log_raceRatio_clockArgmin
+      π r hπpos hπtotal hrpos hrtotal hk)
+    (integrable_normClock_clockArgmin r)
+    (normalizedRaceLogIntegral_le_of_coordinate π hπ hπpos hk hcoord)
+  · simpa only [id_eq] using
+      integral_log_raceRatio_clockArgmin_eq
+        π r hπpos hπtotal hrpos hrtotal hk
+  · simpa only [id_eq] using
+      integral_normClock_clockArgmin_eq r hrpos hrtotal
+
+private lemma lexMax_eq_of_le_iff
+    {Ω Ω' ι : Type*} [Fintype ι] [DecidableEq ι] [Nonempty ι]
+    (F : Ω → ι → ℝ) (G : Ω' → ι → ℝ) (ω : Ω) (ω' : Ω')
+    (hord : ∀ a b, F ω a ≤ F ω b ↔ G ω' a ≤ G ω' b) :
+    lexMax F ω = lexMax G ω' := by
+  let a : ι := lexMax G ω'
+  apply (lexMax_eq_iff F ω a).2
+  have ha : List.argmax (G ω') Finset.univ.toList = some a :=
+    (lexMax_eq_iff G ω' a).1 rfl
+  rw [List.argmax_eq_some_iff] at ha ⊢
+  refine ⟨ha.1, ?_, ?_⟩
+  · intro b hb
+    exact (hord b a).2 (ha.2.1 b hb)
+  · intro b hb hFab
+    exact ha.2.2 b hb ((hord a b).1 hFab)
+
+/-- The shared lexicographic tie-break is preserved exactly by the
+exponential-clock/Gumbel change of variables. -/
+theorem weightedLexWinner_clock_eq_argmin
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (t E : κ → ℝ) (ht : ∀ i, 0 < t i) (hE : ∀ i, 0 < E i) :
+    weightedLexWinner t (fun i => -Real.log (E i)) = clockArgmin t E := by
+  let Fs : (κ → ℝ) → κ → ℝ := fun G i => Real.log (t i) + G i
+  let Fc : (κ → ℝ) → κ → ℝ := fun W i => -(W i / t i)
+  change lexMax Fs (fun i => -Real.log (E i)) = lexMax Fc E
+  apply lexMax_eq_of_le_iff Fs Fc (fun i => -Real.log (E i)) E
+  intro a b
+  have hscore (i : κ) :
+      Fs (fun j => -Real.log (E j)) i = -Real.log (E i / t i) := by
+    dsimp only [Fs]
+    rw [Real.log_div (hE i).ne' (ht i).ne']
+    ring
+  have hra (i : κ) : 0 < E i / t i := div_pos (hE i) (ht i)
+  rw [hscore a, hscore b]
+  change -Real.log (E a / t a) ≤ -Real.log (E b / t b) ↔
+    -(E a / t a) ≤ -(E b / t b)
+  rw [neg_le_neg_iff, neg_le_neg_iff]
+  exact Real.strictMonoOn_log.le_iff_le (hra b) (hra a)
+
+lemma measurable_sharedEntropy_integrand
+    {Ω : Type u} {κ : Type} [Fintype Ω] [Fintype κ]
+    [DecidableEq Ω] [DecidableEq κ] [Nonempty κ]
+    (μ : Ω → ℝ) (r : Ω → κ → ℝ) :
+    Measurable (fun G : κ → ℝ => H (push (sharedWinner r G) μ)) := by
+  letI : MeasurableSpace κ := ⊤
+  let A : (κ → ℝ) → (Ω → κ) := fun G z => sharedWinner r G z
+  let F : (Ω → κ) → ℝ := fun a => H (push a μ)
+  have hA : Measurable A := by
+    apply measurable_pi_lambda
+    intro z
+    dsimp only [A, sharedWinner, weightedLexWinner]
+    apply measurable_lexMax
+    intro i
+    exact measurable_const.add (measurable_pi_apply i)
+  have hF : Measurable F := measurable_of_finite F
+  exact hF.comp hA
+
+/-- The Gumbel and exponential-clock formulations of shared-race entropy
+agree.  Positivity is needed only on posterior rows in the source support. -/
+theorem sharedRaceEntropy_eq_clockSharedRaceEntropy
+    {Ω : Type u} {κ : Type} [Fintype Ω] [Fintype κ]
+    [DecidableEq Ω] [DecidableEq κ] [Nonempty κ]
+    {μ : Ω → ℝ} {r : Ω → κ → ℝ}
+    (hrpos : ∀ z, μ z ≠ 0 → ∀ i, 0 < r z i) :
+    sharedRaceEntropy μ r = clockSharedRaceEntropy μ r := by
+  let F : (κ → ℝ) → (κ → ℝ) := fun E i => -Real.log (E i)
+  have hF : Measurable F := measurable_pi_lambda _ fun i =>
+    (Real.measurable_log.comp (measurable_pi_apply i)).neg
+  have hg : AEStronglyMeasurable
+      (fun G : κ → ℝ => H (push (sharedWinner r G) μ)) (seedLaw κ) :=
+    (measurable_sharedEntropy_integrand μ r).aestronglyMeasurable
+  have hpush : ∀ᵐ E ∂clockLaw κ,
+      push (sharedWinner r (F E)) μ =
+        push (fun z => clockArgmin (r z) E) μ := by
+    filter_upwards [ae_clockLaw_pos (κ := κ)] with E hE
+    funext i
+    unfold push
+    simp_rw [Finset.sum_filter]
+    apply Finset.sum_congr rfl
+    intro z _hz
+    by_cases hz : μ z = 0
+    · simp [hz]
+    · have hw := weightedLexWinner_clock_eq_argmin
+        (r z) E (hrpos z hz) hE
+      have heq : sharedWinner r (F E) z = clockArgmin (r z) E := by
+        simpa only [sharedWinner, F] using hw
+      rw [heq]
+  unfold sharedRaceEntropy clockSharedRaceEntropy seedLaw
+  rw [integral_map hF.aemeasurable hg]
+  apply integral_congr_ae
+  filter_upwards [hpush] with E hE
+  rw [hE]
+
+end SharedRace
+
+lemma winnerResidualClock_pos
+    {κ : Type} [Fintype κ] [DecidableEq κ]
+    (t : κ → ℝ) (ht : ∀ i, 0 < t i) (a : κ) (E : κ → ℝ)
+    (hE : ∀ i, 0 < E i) (ha : strictClockWin t a E) :
+    ∀ i, 0 < winnerResidualClock t a E i := by
+  intro i
+  by_cases hi : i = a
+  · subst i
+    rw [winnerResidualClock_apply_winner]
+    exact div_pos (hE a) (ht a)
+  · have hstrict := ha i hi
+    have hscaled : (E a / t a) * t i < E i :=
+      (lt_div_iff₀ (ht i)).mp hstrict
+    rw [winnerResidualClock_apply_loser t a i hi E]
+    nlinarith
+
+lemma pmf_coordinate_lt_one_of_ne
+    {κ : Type} [Fintype κ] [DecidableEq κ]
+    (t : κ → ℝ) (ht : ∀ i, 0 < t i) (htotal : ∑ i, t i = 1)
+    (i a : κ) (hia : a ≠ i) : t i < 1 := by
+  have haMem : a ∈ (univ : Finset κ).erase i := by simp [hia]
+  have haLe : t a ≤ ∑ b ∈ (univ : Finset κ).erase i, t b :=
+    Finset.single_le_sum (fun b _ => (ht b).le) haMem
+  have hrest : 0 < ∑ b ∈ (univ : Finset κ).erase i, t b :=
+    (ht a).trans_le haLe
+  have hsplit := Finset.sum_erase_add (univ : Finset κ) t
+    (Finset.mem_univ i)
+  rw [htotal] at hsplit
+  linarith
+
+lemma mobius_pairRatio
+    {p u v : ℝ} (hp : 0 < p) (hu : 0 < u) (hv : 0 < v) :
+    SharedRace.mobius p (u / (u + v)) =
+      p * u / (p * u + v) := by
+  have huv : 0 < u + v := add_pos hu hv
+  have hpv : 0 < p * u + v := add_pos (mul_pos hp hu) hv
+  have hforward :
+      p * (u / (u + v)) + 1 - u / (u + v) =
+        (p * u + v) / (u + v) := by
+    field_simp [huv.ne']
+    ring
+  unfold SharedRace.mobius
+  rw [hforward]
+  field_simp [huv.ne', hpv.ne']
+
+private lemma loser_normalized_difference_identity
+    {p u v s : ℝ} (hp : 0 < p) (hu : 0 < u) (hv : 0 < v)
+    (hs : 0 < s) :
+    (p * u + v) / s - u / s =
+      ((u + v) / s) *
+        ((p - p * u / (p * u + v)) /
+          (p + (1 - p) * (p * u / (p * u + v)))) := by
+  have huv : 0 < u + v := add_pos hu hv
+  have hpv : 0 < p * u + v := add_pos (mul_pos hp hu) hv
+  have hqden :
+      p + (1 - p) * (p * u / (p * u + v)) =
+        p * (u + v) / (p * u + v) := by
+    field_simp [hpv.ne']
+    ring
+  have hqdenPos : 0 < p + (1 - p) * (p * u / (p * u + v)) := by
+    rw [hqden]
+    positivity
+  rw [hqden]
+  field_simp [hs.ne', hpv.ne', huv.ne', hp.ne']
+
+/-- Pointwise form of a losing coordinate after the fixed-winner residual
+transformation.  The split of the two distinguished fresh clocks is sent
+through the Möbius map, while their normalized sum carries the shape-two
+beta exponent. -/
+private lemma clockCoordinateIntegrand_loser_eq
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (t : κ → ℝ) (ht : ∀ i, 0 < t i) (htotal : ∑ i, t i = 1)
+    (a i : κ) (hai : a ≠ i) (E : κ → ℝ) (hE : ∀ j, 0 < E j)
+    (ha : strictClockWin t a E) :
+    SharedRace.clockCoordinateIntegrand t i E =
+      let W := winnerResidualClock t a E
+      let v := W a / (W a + W i)
+      let x := SharedRace.mobius (t i) v
+      x ^ 2 * Real.exp
+        ((Fintype.card κ : ℝ) *
+          ((W a + W i) / SharedRace.clockTotal W) *
+            SharedRace.loserExponent (t i) x) := by
+  let W : κ → ℝ := winnerResidualClock t a E
+  let v : ℝ := W a / (W a + W i)
+  let x : ℝ := SharedRace.mobius (t i) v
+  have hW : ∀ j, 0 < W j :=
+    winnerResidualClock_pos t ht a E hE ha
+  have hx : x = t i * W a / (t i * W a + W i) := by
+    dsimp only [x, v]
+    exact mobius_pairRatio (ht i) (hW a) (hW i)
+  have hratio : SharedRace.raceRatio t E i = x := by
+    rw [raceRatio_loser_eq_residual t ht a i hai.symm E ha]
+    exact hx.symm
+  have htotalW : 0 < SharedRace.clockTotal W :=
+    SharedRace.clockTotal_pos W hW
+  have hdiff :
+      SharedRace.normClock E i - SharedRace.normRaceMin t E =
+        ((W a + W i) / SharedRace.clockTotal W) *
+          ((t i - x) / (t i + (1 - t i) * x)) := by
+    rw [normClock_loser_eq_residual t ht htotal a i hai.symm E,
+      normRaceMin_eq_residual t ht htotal a E ha]
+    unfold SharedRace.normClock
+    change
+      (t i * W a + W i) / SharedRace.clockTotal W -
+          W a / SharedRace.clockTotal W = _
+    calc
+      (t i * W a + W i) / SharedRace.clockTotal W -
+          W a / SharedRace.clockTotal W =
+          ((W a + W i) / SharedRace.clockTotal W) *
+            ((t i - t i * W a / (t i * W a + W i)) /
+              (t i + (1 - t i) *
+                (t i * W a / (t i * W a + W i)))) :=
+        loser_normalized_difference_identity (ht i) (hW a) (hW i) htotalW
+      _ = ((W a + W i) / SharedRace.clockTotal W) *
+          ((t i - x) / (t i + (1 - t i) * x)) := by rw [hx]
+  dsimp only
+  rw [SharedRace.clockCoordinateIntegrand, hratio, hdiff]
+  unfold SharedRace.loserExponent
+  congr 2
+  ring
+
+/-- Fresh-clock integrand common to every losing winner cell for a fixed
+target coordinate. -/
+private noncomputable def freshLoserCoordinateIntegrand
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (p : ℝ) (a i : κ) (W : κ → ℝ) : ℝ :=
+  let v := W a / (W a + W i)
+  let x := SharedRace.mobius p v
+  x ^ 2 * Real.exp
+    ((Fintype.card κ : ℝ) *
+      ((W a + W i) / SharedRace.clockTotal W) *
+        SharedRace.loserExponent p x)
+
+private lemma pairMobiusIntegrand_comp_eq_freshLoser
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (p : ℝ) (a i : κ) (W : κ → ℝ) :
+    SharedRace.pairMobiusIntegrand p
+        ((Fintype.card κ : ℝ) * (W a + W i) /
+            SharedRace.clockTotal W,
+          W a / (W a + W i)) =
+      freshLoserCoordinateIntegrand p a i W := by
+  unfold SharedRace.pairMobiusIntegrand
+    freshLoserCoordinateIntegrand
+  dsimp only
+  congr 2
+  ring
+
+private lemma measurable_freshLoserCoordinateIntegrand
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (p : ℝ) (a i : κ) : Measurable (freshLoserCoordinateIntegrand p a i) := by
+  let v : (κ → ℝ) → ℝ := fun W => W a / (W a + W i)
+  let x : (κ → ℝ) → ℝ := fun W => SharedRace.mobius p (v W)
+  have hv : Measurable v := by
+    dsimp only [v]
+    fun_prop
+  have hx : Measurable x := by
+    dsimp only [x]
+    unfold SharedRace.mobius
+    fun_prop
+  have hpair : Measurable (fun W : κ → ℝ =>
+      (W a + W i) / SharedRace.clockTotal W) :=
+    ((measurable_pi_apply a).add (measurable_pi_apply i)).div
+      SharedRace.measurable_clockTotal
+  have hloser : Measurable (fun W =>
+      SharedRace.loserExponent p (x W)) := by
+    unfold SharedRace.loserExponent
+    fun_prop
+  have hexponent : Measurable (fun W =>
+      (Fintype.card κ : ℝ) *
+        ((W a + W i) / SharedRace.clockTotal W) *
+          SharedRace.loserExponent p (x W)) :=
+    (measurable_const.mul hpair).mul hloser
+  unfold freshLoserCoordinateIntegrand
+  change Measurable (fun W => x W ^ 2 * Real.exp
+    ((Fintype.card κ : ℝ) *
+      ((W a + W i) / SharedRace.clockTotal W) *
+        SharedRace.loserExponent p (x W)))
+  exact (hx.pow_const 2).mul (Real.measurable_exp.comp hexponent)
+
+/-- The fresh losing-pair statistic is integrable.  This is obtained from
+the already bounded coordinate statistic on any positive-mass losing cell
+and the exact residual-clock pushforward. -/
+private lemma integrable_freshLoserCoordinateIntegrand
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (t : κ → ℝ) (ht : ∀ i, 0 < t i) (htotal : ∑ i, t i = 1)
+    (a i : κ) (hai : a ≠ i) :
+    Integrable (freshLoserCoordinateIntegrand (t i) a i) (clockLaw κ) := by
+  let cell : Set (κ → ℝ) := {E | strictClockWin t a E}
+  let f := freshLoserCoordinateIntegrand (t i) a i
+  have hcoord : Integrable (SharedRace.clockCoordinateIntegrand t i)
+      ((clockLaw κ).restrict cell) :=
+    (SharedRace.clockCoordinateIntegrand_integrable t ht i).mono_measure
+      Measure.restrict_le_self
+  have hpoint :
+      (fun E => SharedRace.clockCoordinateIntegrand t i E) =ᵐ[
+        (clockLaw κ).restrict cell]
+      fun E => f (winnerResidualClock t a E) := by
+    filter_upwards [ae_restrict_of_ae (SharedRace.ae_clockLaw_pos (κ := κ)),
+      ae_restrict_mem (strictClockWin_measurableSet t a)] with E hE ha
+    simpa only [f, freshLoserCoordinateIntegrand] using
+      clockCoordinateIntegrand_loser_eq t ht htotal a i hai E hE ha
+  have hcomp : Integrable (fun E => f (winnerResidualClock t a E))
+      ((clockLaw κ).restrict cell) := hcoord.congr hpoint
+  have hmap := winnerResidualClock_restrict_law t ht htotal a
+  have hfstrong : AEStronglyMeasurable f
+      (Measure.map (winnerResidualClock t a) ((clockLaw κ).restrict cell)) := by
+    exact (measurable_freshLoserCoordinateIntegrand (t i) a i).aestronglyMeasurable
+  have hscaled : Integrable f (ENNReal.ofReal (t a) • clockLaw κ) := by
+    rw [← hmap]
+    exact (integrable_map_measure hfstrong
+      (winnerResidualClock_measurable t a).aemeasurable).2 hcomp
+  have hmass : ENNReal.ofReal (t a) ≠ 0 := by
+    exact ne_of_gt (ENNReal.ofReal_pos.mpr (ht a))
+  exact (integrable_smul_measure
+    hmass (by simp)).1 hscaled
+
+/-- Exact fresh losing-pair moment in the nondegenerate `k ≥ 3` branch. -/
+private theorem integral_freshLoserCoordinate_eq_beta
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (p : ℝ) (hp0 : 0 < p) (hp1 : p < 1)
+    (a i : κ) (hai : a ≠ i) (hk : 3 ≤ Fintype.card κ) :
+    (∫ W, freshLoserCoordinateIntegrand p a i W ∂clockLaw κ) =
+      ∫ v : ℝ in 0..1,
+        SharedRace.loserBetaIntegrand (Fintype.card κ) p
+          (SharedRace.mobius p v) := by
+  calc
+    (∫ W, freshLoserCoordinateIntegrand p a i W ∂clockLaw κ) =
+        ∫ W, SharedRace.pairMobiusIntegrand p
+          ((Fintype.card κ : ℝ) * (W a + W i) /
+              SharedRace.clockTotal W,
+            W a / (W a + W i)) ∂clockLaw κ := by
+      apply MeasureTheory.integral_congr_ae
+      exact Filter.Eventually.of_forall fun W =>
+        (pairMobiusIntegrand_comp_eq_freshLoser p a i W).symm
+    _ = _ :=
+      SharedRace.integral_pairMobiusIntegrand_clockLaw_eq_beta
+        a i hai hk hp0 hp1
+
+/-- Exact fresh losing-pair moment in the degenerate two-label branch. -/
+private theorem integral_freshLoserCoordinate_eq_degenerate
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (p : ℝ) (a i : κ) (hai : a ≠ i) (hk : Fintype.card κ = 2) :
+    (∫ W, freshLoserCoordinateIntegrand p a i W ∂clockLaw κ) =
+      ∫ v : ℝ in 0..1,
+        SharedRace.loserDegenerateIntegrand p
+          (SharedRace.mobius p v) := by
+  calc
+    (∫ W, freshLoserCoordinateIntegrand p a i W ∂clockLaw κ) =
+        ∫ W, SharedRace.pairMobiusIntegrand p
+          ((Fintype.card κ : ℝ) * (W a + W i) /
+              SharedRace.clockTotal W,
+            W a / (W a + W i)) ∂clockLaw κ := by
+      apply MeasureTheory.integral_congr_ae
+      exact Filter.Eventually.of_forall fun W =>
+        (pairMobiusIntegrand_comp_eq_freshLoser p a i W).symm
+    _ = _ :=
+      SharedRace.integral_pairMobiusIntegrand_clockLaw_eq_degenerate
+        a i hai hk p
+
+private theorem clockCoordinate_loserCell_integral_eq_fresh
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (t : κ → ℝ) (ht : ∀ i, 0 < t i) (htotal : ∑ i, t i = 1)
+    (a i : κ) (hai : a ≠ i) :
+    (∫ E, SharedRace.clockCoordinateIntegrand t i E
+        ∂((clockLaw κ).restrict {E | strictClockWin t a E})) =
+      t a * ∫ W, freshLoserCoordinateIntegrand (t i) a i W
+        ∂clockLaw κ := by
+  have hpoint :
+      (fun E => SharedRace.clockCoordinateIntegrand t i E) =ᵐ[
+        (clockLaw κ).restrict {E | strictClockWin t a E}]
+      fun E => freshLoserCoordinateIntegrand (t i) a i
+        (winnerResidualClock t a E) := by
+    filter_upwards [ae_restrict_of_ae (SharedRace.ae_clockLaw_pos (κ := κ)),
+      ae_restrict_mem (strictClockWin_measurableSet t a)] with E hE ha
+    simpa only [freshLoserCoordinateIntegrand] using
+      clockCoordinateIntegrand_loser_eq t ht htotal a i hai E hE ha
+  calc
+    (∫ E, SharedRace.clockCoordinateIntegrand t i E
+        ∂((clockLaw κ).restrict {E | strictClockWin t a E})) =
+        ∫ E, freshLoserCoordinateIntegrand (t i) a i
+            (winnerResidualClock t a E)
+          ∂((clockLaw κ).restrict {E | strictClockWin t a E}) :=
+      integral_congr_ae hpoint
+    _ = t a * ∫ W, freshLoserCoordinateIntegrand (t i) a i W
+          ∂clockLaw κ :=
+      integral_comp_winnerResidualClock t ht htotal a
+        (freshLoserCoordinateIntegrand (t i) a i)
+        (measurable_freshLoserCoordinateIntegrand (t i) a i)
+
+/-- Finite winner-cell bookkeeping for a coordinate, once the common fresh
+loser moment has been identified. -/
+private theorem clockCoordinate_integral_eq_of_loserMoment
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (t : κ → ℝ) (ht : ∀ i, 0 < t i) (htotal : ∑ i, t i = 1)
+    (hk : 2 ≤ Fintype.card κ) (i : κ) (J : ℝ)
+    (hJ : ∀ a, a ≠ i →
+      (∫ W, freshLoserCoordinateIntegrand (t i) a i W ∂clockLaw κ) = J) :
+    (∫ E, SharedRace.clockCoordinateIntegrand t i E ∂clockLaw κ) =
+      t i * SharedRace.betaOneExpMoment (Fintype.card κ)
+          (-SharedRace.logTwo * (1 - t i)) +
+        (1 - t i) * J := by
+  have hpartition := integral_clock_eq_sum_strictClockWin t ht htotal
+    (SharedRace.clockCoordinateIntegrand t i)
+    (SharedRace.clockCoordinateIntegrand_integrable t ht i)
+  have hiMem : i ∈ (univ : Finset κ) := Finset.mem_univ i
+  have hsplit := Finset.sum_erase_add (univ : Finset κ)
+    (fun a => ∫ E, SharedRace.clockCoordinateIntegrand t i E
+      ∂((clockLaw κ).restrict {E | strictClockWin t a E})) hiMem
+  have hloserSum :
+      (∑ a ∈ (univ : Finset κ).erase i,
+        ∫ E, SharedRace.clockCoordinateIntegrand t i E
+          ∂((clockLaw κ).restrict {E | strictClockWin t a E})) =
+        (∑ a ∈ (univ : Finset κ).erase i, t a) * J := by
+    rw [Finset.sum_mul]
+    apply Finset.sum_congr rfl
+    intro a ha
+    have hai : a ≠ i := (Finset.mem_erase.mp ha).1
+    rw [clockCoordinate_loserCell_integral_eq_fresh t ht htotal a i hai,
+      hJ a hai]
+  have htErase : (∑ a ∈ (univ : Finset κ).erase i, t a) = 1 - t i := by
+    have h := Finset.sum_erase_add (univ : Finset κ) t hiMem
+    rw [htotal] at h
+    linarith
+  rw [hpartition, ← hsplit, hloserSum, htErase,
+    clockCoordinate_winnerCell_integral_eq t ht htotal hk i]
+  ring
+
+/-- Once the fresh losing pair has the shape-two beta integral, the scalar
+allocation theorem closes the coordinate estimate for `k ≥ 3`. -/
+private theorem clockCoordinate_integral_le_of_betaLoserMoment
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (t : κ → ℝ) (ht : ∀ i, 0 < t i) (htotal : ∑ i, t i = 1)
+    (hk : 3 ≤ Fintype.card κ) (i : κ)
+    (hJ : ∀ a, a ≠ i →
+      (∫ W, freshLoserCoordinateIntegrand (t i) a i W ∂clockLaw κ) =
+        ∫ v : ℝ in 0..1,
+          SharedRace.loserBetaIntegrand (Fintype.card κ) (t i)
+            (SharedRace.mobius (t i) v)) :
+    (∫ E, SharedRace.clockCoordinateIntegrand t i E ∂clockLaw κ) ≤
+      t i := by
+  have hkTwo : 2 ≤ Fintype.card κ := by omega
+  obtain ⟨a, hai⟩ := Fintype.exists_ne_of_one_lt_card
+    (show 1 < Fintype.card κ by omega) i
+  have htiOne : t i < 1 :=
+    pmf_coordinate_lt_one_of_ne t ht htotal i a hai
+  rw [clockCoordinate_integral_eq_of_loserMoment t ht htotal hkTwo i
+    (∫ v : ℝ in 0..1,
+      SharedRace.loserBetaIntegrand (Fintype.card κ) (t i)
+        (SharedRace.mobius (t i) v)) hJ]
+  exact SharedRace.betaCoordinateContribution_le
+    (Fintype.card κ) hk (ht i) htiOne
+
+/-- Degenerate two-coordinate companion of
+`clockCoordinate_integral_le_of_betaLoserMoment`. -/
+private theorem clockCoordinate_integral_le_of_twoLoserMoment
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (t : κ → ℝ) (ht : ∀ i, 0 < t i) (htotal : ∑ i, t i = 1)
+    (hk : Fintype.card κ = 2) (i : κ)
+    (hJ : ∀ a, a ≠ i →
+      (∫ W, freshLoserCoordinateIntegrand (t i) a i W ∂clockLaw κ) =
+        ∫ v : ℝ in 0..1,
+          SharedRace.loserDegenerateIntegrand (t i)
+            (SharedRace.mobius (t i) v)) :
+    (∫ E, SharedRace.clockCoordinateIntegrand t i E ∂clockLaw κ) ≤
+      t i := by
+  have hkTwo : 2 ≤ Fintype.card κ := hk.ge
+  obtain ⟨a, hai⟩ := Fintype.exists_ne_of_one_lt_card
+    (show 1 < Fintype.card κ by omega) i
+  have htiOne : t i < 1 :=
+    pmf_coordinate_lt_one_of_ne t ht htotal i a hai
+  rw [clockCoordinate_integral_eq_of_loserMoment t ht htotal hkTwo i
+    (∫ v : ℝ in 0..1,
+      SharedRace.loserDegenerateIntegrand (t i)
+        (SharedRace.mobius (t i) v)) hJ, hk]
+  exact SharedRace.twoCoordinateContribution_le (ht i) htiOne
+
+namespace SharedRace
+
+/-- The normalized shared-race reference moment is bounded by its PMF
+coordinate.  The proof partitions by the winning clock, evaluates the common
+fresh losing pair through the exact pair-clock law, and invokes the scalar
+beta allocation theorem (including its separate two-label branch). -/
+theorem clockCoordinateIntegral_le
+    {κ : Type} [Fintype κ] [DecidableEq κ] [Nonempty κ]
+    (t : κ → ℝ) (ht : IsPMF t) (htpos : ∀ i, 0 < t i)
+    (hk : 2 ≤ Fintype.card κ) (i : κ) :
+    (∫ E : κ → ℝ, clockCoordinateIntegrand t i E ∂clockLaw κ) ≤ t i := by
+  have htotal : ∑ j, t j = 1 := by
+    simpa only [mass] using ht.total
+  by_cases hkTwo : Fintype.card κ = 2
+  · apply clockCoordinate_integral_le_of_twoLoserMoment
+      t htpos htotal hkTwo i
+    intro a hai
+    exact integral_freshLoserCoordinate_eq_degenerate
+      (t i) a i hai hkTwo
+  · have hkThree : 3 ≤ Fintype.card κ := by omega
+    apply clockCoordinate_integral_le_of_betaLoserMoment
+      t htpos htotal hkThree i
+    intro a hai
+    have htiOne : t i < 1 :=
+      pmf_coordinate_lt_one_of_ne t htpos htotal i a hai
+    exact integral_freshLoserCoordinate_eq_beta
+      (t i) (htpos i) htiOne a i hai hkThree
+
+end SharedRace
+
 private lemma compProd_raceLosingKernel_eq_map {p : α × β → ℝ}
     {D : SeedSetup p} (K : Clustering D) (b : K.κ) (z : α × β)
     (μ : Measure ℝ) [SFinite μ] :
@@ -9291,24 +11144,24 @@ private theorem winner_condMI_eq_componentPartitions
       (fun q => D.L.prior b * V.joint q) = _
   exact hscale
 
-private noncomputable def fixedWinnerIZ {p : α × β → ℝ}
+noncomputable def fixedWinnerIZ {p : α × β → ℝ}
     (D : SeedSetup p) (ε : D.L.ι → ℝ) : ℝ :=
   condMI (fun q : D.L.ι × (α × β) => winner D ε q.2)
     (fun q => q.2) Prod.fst D.L.joint
 
-private noncomputable def fixedWinnerIX {p : α × β → ℝ}
+noncomputable def fixedWinnerIX {p : α × β → ℝ}
     (D : SeedSetup p) (ε : D.L.ι → ℝ) : ℝ :=
   condMI (fun q : D.L.ι × (α × β) => winner D ε q.2)
     (fun q => q.2.1) Prod.fst D.L.joint
 
-private noncomputable def fixedWinnerIY {p : α × β → ℝ}
+noncomputable def fixedWinnerIY {p : α × β → ℝ}
     (D : SeedSetup p) (ε : D.L.ι → ℝ) : ℝ :=
   condMI (fun q : D.L.ι × (α × β) => winner D ε q.2)
     (fun q => q.2.2) Prod.fst D.L.joint
 
 /-- The identity form of Theorem 5.7 at a fixed seed, rederived here because
 the corresponding helper in `stoch_to_det.Seed` is intentionally private. -/
-private theorem fixed_seed_rcell_identity {p : α × β → ℝ}
+theorem fixed_seed_rcell_identity {p : α × β → ℝ}
     (D : SeedSetup p) (ε : D.L.ι → ℝ) :
     raceCellIntegrand D ε =
       3 * fixedWinnerIZ D ε - 2 * fixedWinnerIX D ε -
@@ -9375,7 +11228,7 @@ private theorem fixed_seed_rcell_identity {p : α × β → ℝ}
         ring
 
 /-- Conditional `I(A;Z|L₀) ≤ H(A|L₀)` for the fixed-seed finite law. -/
-private theorem fixed_seed_info_le_entropy {p : α × β → ℝ}
+theorem fixed_seed_info_le_entropy {p : α × β → ℝ}
     (D : SeedSetup p) (ε : D.L.ι → ℝ) :
     fixedWinnerIZ D ε ≤
       condH (fun q : D.L.ι × (α × β) => winner D ε q.2)
@@ -9409,7 +11262,7 @@ private theorem fixed_seed_rcell_le {p : α × β → ℝ}
   nlinarith [fixed_seed_info_le_entropy D ε]
 
 /-- Measurability/boundedness of the finite winner-code residual integrand. -/
-private theorem integrable_raceCellIntegrand {p : α × β → ℝ}
+theorem integrable_raceCellIntegrand {p : α × β → ℝ}
     (D : SeedSetup p) :
     Integrable (raceCellIntegrand D) (seedLaw D.L.ι) := by
   let F : ((α × β) → D.L.ι) → ℝ := fun A =>
@@ -9425,7 +11278,7 @@ private theorem integrable_raceCellIntegrand {p : α × β → ℝ}
   simpa only [F, cell] using h
 
 /-- Measurability/boundedness of the finite conditional-entropy integrand. -/
-private theorem integrable_raceWinnerEntropy {p : α × β → ℝ}
+theorem integrable_raceWinnerEntropy {p : α × β → ℝ}
     (D : SeedSetup p) :
     Integrable
       (fun ε => condH
@@ -9453,12 +11306,314 @@ private theorem race_rcell_le {p : α × β → ℝ} (D : SeedSetup p) :
       rw [integral_const_mul]
       rfl
 
-/-- The race construction: the actual seed-level quantities inhabit the
-interface. This bundles Lemmas 7.2–7.5 and Theorems 8.1 and 10.1, and is the
-only measure-theoretic obligation of the development. -/
-theorem exists_raceQuantities {p : α × β → ℝ} (D : SeedSetup p)
-    (K : Clustering D) : Nonempty (RaceQuantities D K) := by
-  exact ⟨{
+/-! ### Direct bridge from the all-label shared-race bound
+
+The analytic theorem is stated for one finite source law and one posterior
+vector at each source atom.  The duplicate quotient supplies exactly such a
+problem in every `C₀ = g` context.  The lemmas below transport its shared
+cluster race back to the original label race, without passing through the
+scalar/cone KL decomposition.
+-/
+
+lemma sharedRace_sharedWinner_eq_groupedClusterLexWinner
+    {p : α × β → ℝ} {D : SeedSetup p} (K : Clustering D)
+    (G : K.κ → ℝ) (z : α × β) :
+    SharedRace.sharedWinner (fun z c => K.sigma c z) G z =
+      groupedClusterLexWinner K G z := by
+  rfl
+
+lemma groupedClusterWinner_ae_eq_lex_after_grouping
+    {p : α × β → ℝ} (D : SeedSetup p) (K : Clustering D) :
+    (fun ε => groupedClusterWinner K (groupedG K ε)) =ᵐ[seedLaw D.L.ι]
+      fun ε => groupedClusterLexWinner K (groupedG K ε) := by
+  have hG : Measurable (groupedG K) :=
+    measurable_fst.comp (groupedPair_measurable K)
+  have hseed : ∀ᵐ G ∂(seedLaw K.κ),
+      ∀ z, groupedClusterWinner K G z = groupedClusterLexWinner K G z := by
+    apply ae_forall_fintype
+    intro z
+    change (fun G => weightedWinner (fun c : K.κ => K.sigma c z) G) =ᵐ[
+      seedLaw K.κ] fun G => weightedLexWinner (fun c : K.κ => K.sigma c z) G
+    exact weightedWinner_ae_eq_lex (fun c : K.κ => K.sigma c z)
+  have hmapped : ∀ᵐ G ∂(Measure.map (groupedG K) (seedLaw D.L.ι)),
+      ∀ z, groupedClusterWinner K G z = groupedClusterLexWinner K G z := by
+    rw [grouped_gumbel_law K]
+    exact hseed
+  have hpull := ae_of_ae_map hG.aemeasurable hmapped
+  filter_upwards [hpull] with ε hε
+  funext z
+  exact hε z
+
+private lemma fixed_seed_label_cluster_entropy_eq
+    {p : α × β → ℝ} (D : SeedSetup p) (K : Clustering D)
+    (ε : D.L.ι → ℝ)
+    (hlabel : lexWinner D ε = groupedLabelWinner K ε)
+    (hcluster : groupedClusterWinner K (groupedG K ε) =
+      groupedClusterLexWinner K (groupedG K ε))
+    (l₀ : D.L.ι) :
+    H (balanceWinnerProb D (lexWinner D ε) l₀) =
+      H (push
+        (SharedRace.sharedWinner (fun z c => K.sigma c z) (groupedG K ε))
+        (K.Q (K.cl l₀))) := by
+  let f : (α × β) → K.κ :=
+    SharedRace.sharedWinner (fun z c => K.sigma c z) (groupedG K ε)
+  let u : K.κ → D.L.ι := fun c => (groupedWithinWinner K ε c).1
+  have hleft : Function.LeftInverse K.cl u := by
+    intro c
+    exact (groupedWithinWinner K ε c).2
+  have hpoint (z : α × β) (hz : z ∈ support p) :
+      lexWinner D ε z = u (f z) := by
+    rw [congrFun hlabel z]
+    simp only [groupedLabelWinner, hz, if_true, u, f]
+    rw [congrFun hcluster z]
+    rw [sharedRace_sharedWinner_eq_groupedClusterLexWinner K]
+  have hpush :
+      push (lexWinner D ε) (D.L.comp l₀) =
+        push (u ∘ f) (D.L.comp l₀) := by
+    funext a
+    unfold push
+    simp_rw [Finset.sum_filter]
+    apply Finset.sum_congr rfl
+    intro z _
+    by_cases hz : z ∈ support p
+    · rw [hpoint z hz]
+      rfl
+    · have hpz : p z = 0 := by simpa [support] using hz
+      have hzero : D.L.comp l₀ z = 0 :=
+        (component_eq_zero_iff D l₀ z).2 hpz
+      simp [hzero]
+  calc
+    H (balanceWinnerProb D (lexWinner D ε) l₀) =
+        Hvar (lexWinner D ε) (D.L.comp l₀) := by
+      have hbalance : balanceWinnerProb D (lexWinner D ε) l₀ =
+          push (lexWinner D ε) (D.L.comp l₀) := by
+        funext a
+        exact balanceWinnerProb_eq_push D (lexWinner D ε) l₀ a
+      rw [hbalance]
+      rfl
+    _ = Hvar (u ∘ f) (D.L.comp l₀) := by
+      unfold Hvar
+      rw [hpush]
+    _ = Hvar f (D.L.comp l₀) :=
+      Hvar_eq_of_leftInverse (D.L.comp_isPMF l₀) f u K.cl hleft
+    _ = Hvar f (K.Q (K.cl l₀)) := by
+      rw [component_eq_clusterQ K l₀]
+    _ = H (push
+        (SharedRace.sharedWinner (fun z c => K.sigma c z) (groupedG K ε))
+        (K.Q (K.cl l₀))) := by
+      rfl
+
+private lemma label_context_entropy_eq_sharedRaceEntropy
+    {p : α × β → ℝ} (D : SeedSetup p) (K : Clustering D)
+    (l₀ : D.L.ι) :
+    (∫ ε, H (balanceWinnerProb D (lexWinner D ε) l₀)
+        ∂(seedLaw D.L.ι)) =
+      SharedRace.sharedRaceEntropy (K.Q (K.cl l₀))
+        (fun z c => K.sigma c z) := by
+  letI : MeasurableSpace K.κ := ⊤
+  have hlabel :
+      (fun ε => lexWinner D ε) =ᵐ[seedLaw D.L.ι]
+        fun ε => groupedLabelWinner K ε :=
+    (winner_ae_eq_lexWinner D).symm.trans (grouped_winner_agrees_ae D K)
+  have hcluster := groupedClusterWinner_ae_eq_lex_after_grouping D K
+  let F : (K.κ → ℝ) → ℝ := fun G =>
+    H (push (SharedRace.sharedWinner (fun z c => K.sigma c z) G)
+      (K.Q (K.cl l₀)))
+  have hshared : Measurable
+      (fun G : K.κ → ℝ =>
+        SharedRace.sharedWinner (fun z c => K.sigma c z) G) := by
+    apply measurable_pi_lambda
+    intro z
+    unfold SharedRace.sharedWinner SharedRace.weightedLexWinner
+    apply measurable_lexMax
+    intro c
+    exact measurable_const.add (measurable_pi_apply c)
+  have hF : Measurable F := by
+    exact (measurable_of_finite
+      (fun A : (α × β) → K.κ => H (push A (K.Q (K.cl l₀))))).comp
+        hshared
+  have hG : Measurable (groupedG K) :=
+    measurable_fst.comp (groupedPair_measurable K)
+  calc
+    (∫ ε, H (balanceWinnerProb D (lexWinner D ε) l₀)
+        ∂(seedLaw D.L.ι)) =
+        ∫ ε, F (groupedG K ε) ∂(seedLaw D.L.ι) := by
+      apply integral_congr_ae
+      filter_upwards [hlabel, hcluster] with ε hlabelε hclusterε
+      exact fixed_seed_label_cluster_entropy_eq D K ε hlabelε hclusterε l₀
+    _ = ∫ G, F G ∂(Measure.map (groupedG K) (seedLaw D.L.ι)) := by
+      exact (integral_map hG.aemeasurable hF.aestronglyMeasurable).symm
+    _ = ∫ G, F G ∂(seedLaw K.κ) := by
+      rw [grouped_gumbel_law K]
+    _ = SharedRace.sharedRaceEntropy (K.Q (K.cl l₀))
+        (fun z c => K.sigma c z) := by
+      rfl
+
+private theorem raceWinnerEntropy_eq_sharedRaceEntropy_sum
+    {p : α × β → ℝ} (D : SeedSetup p) (K : Clustering D) :
+    raceWinnerEntropy D =
+      ∑ g, K.s g * SharedRace.sharedRaceEntropy (K.Q g)
+        (fun z c => K.sigma c z) := by
+  rw [balance_raceWinnerEntropy_eq_entropy_sum D]
+  simp_rw [label_context_entropy_eq_sharedRaceEntropy D K]
+  let F : K.κ → ℝ := fun g =>
+    SharedRace.sharedRaceEntropy (K.Q g) (fun z c => K.sigma c z)
+  change (∑ l₀, D.L.prior l₀ * F (K.cl l₀)) = ∑ g, K.s g * F g
+  calc
+    (∑ l₀, D.L.prior l₀ * F (K.cl l₀)) =
+        ∑ g, ∑ l₀ ∈ univ.filter (fun l₀ => K.cl l₀ = g),
+          D.L.prior l₀ * F (K.cl l₀) := by
+      symm
+      simpa using Finset.sum_fiberwise (univ : Finset D.L.ι) K.cl
+        (fun l₀ => D.L.prior l₀ * F (K.cl l₀))
+    _ = ∑ g, K.s g * F g := by
+      apply Finset.sum_congr rfl
+      intro g _
+      unfold Clustering.s
+      rw [Finset.sum_mul]
+      apply Finset.sum_congr rfl
+      intro l₀ hl₀
+      rw [(Finset.mem_filter.mp hl₀).2]
+
+private lemma clusterPosterior_isPMF_of_Q_support
+    {p : α × β → ℝ} {D : SeedSetup p} (K : Clustering D)
+    (g : K.κ) (z : α × β) (hz : K.Q g z ≠ 0) :
+    IsPMF (fun c => K.sigma c z) := by
+  have hzsupport : z ∈ support p := by
+    by_contra hzs
+    exact hz ((K.Q_isContact g).2.1 z hzs)
+  constructor
+  · exact fun c => raceSigma_nonneg K c z
+  · simpa [mass] using raceSigma_sum_eq_one K z hzsupport
+
+private lemma clusterPosterior_pos_of_Q_support
+    {p : α × β → ℝ} {D : SeedSetup p} (K : Clustering D)
+    (g : K.κ) (z : α × β) (hz : K.Q g z ≠ 0) (c : K.κ) :
+    0 < K.sigma c z := by
+  apply K.sigma_pos c z
+  by_contra hzs
+  exact hz ((K.Q_isContact g).2.1 z hzs)
+
+private lemma push_sharedRace_posteriorJoint_swap
+    {p : α × β → ℝ} {D : SeedSetup p} (K : Clustering D)
+    (g : K.κ) :
+    push (fun zi : (α × β) × K.κ => (zi.2, zi.1))
+        (SharedRace.posteriorJoint (K.Q g) (fun z c => K.sigma c z)) =
+      scalarPosteriorJoint K g := by
+  funext bz
+  rcases bz with ⟨b, z⟩
+  unfold push SharedRace.posteriorJoint scalarPosteriorJoint
+  simp_rw [Finset.sum_filter]
+  rw [Fintype.sum_prod_type]
+  simp only [Prod.mk.injEq]
+  calc
+    (∑ x, ∑ c, if c = b ∧ x = z then K.Q g x * K.sigma c x else 0) =
+        ∑ c, if c = b ∧ z = z then K.Q g z * K.sigma c z else 0 := by
+      apply Fintype.sum_eq_single z
+      intro x hx
+      simp [hx]
+    _ = K.Q g z * K.sigma b z := by
+      rw [Finset.sum_eq_single b]
+      · simp
+      · intro c _ hc
+        simp [hc]
+      · simp
+
+private lemma sharedRace_posterior_MI_eq_scalarPosterior_MI
+    {p : α × β → ℝ} {D : SeedSetup p} (K : Clustering D)
+    (g : K.κ) :
+    MI Prod.fst Prod.snd
+        (SharedRace.posteriorJoint (K.Q g) (fun z c => K.sigma c z)) =
+      MI Prod.fst Prod.snd (scalarPosteriorJoint K g) := by
+  let m : ((α × β) × K.κ) → ℝ :=
+    SharedRace.posteriorJoint (K.Q g) (fun z c => K.sigma c z)
+  have hm : IsPMF m := SharedRace.posteriorJoint_isPMF_of_support
+    (K.Q_isContact g).1 (clusterPosterior_isPMF_of_Q_support K g)
+  calc
+    MI Prod.fst Prod.snd m = MI Prod.snd Prod.fst m :=
+      MI_comm hm Prod.fst Prod.snd
+    _ = MI Prod.fst Prod.snd
+        (push (fun zi : (α × β) × K.κ => (zi.2, zi.1)) m) :=
+      race_MI_eq_joint_push m Prod.snd Prod.fst
+    _ = MI Prod.fst Prod.snd (scalarPosteriorJoint K g) := by
+      rw [show push (fun zi : (α × β) × K.κ => (zi.2, zi.1)) m =
+          scalarPosteriorJoint K g by
+        exact push_sharedRace_posteriorJoint_swap K g]
+
+private theorem sharedRaceEntropy_context_le
+    {p : α × β → ℝ} {D : SeedSetup p} (K : Clustering D)
+    (h : SharedRace.HasSharedRaceBound (α × β) K.κ) (g : K.κ) :
+    SharedRace.sharedRaceEntropy (K.Q g) (fun z c => K.sigma c z) ≤
+      2 * MI Prod.fst Prod.snd (scalarPosteriorJoint K g) +
+        ∑ z, K.Q g z * (1 - ∑ c, K.sigma c z ^ 2) := by
+  have hg := h (K.Q g) (fun z c => K.sigma c z)
+    (K.Q_isContact g).1
+    (clusterPosterior_isPMF_of_Q_support K g)
+    (clusterPosterior_pos_of_Q_support K g)
+  rw [sharedRace_posterior_MI_eq_scalarPosterior_MI K g] at hg
+  simpa only [SharedRace.categoricalMismatch] using hg
+
+/-- Any finite-source entropy comparison transfers to the calibrated grouped
+race with the same coefficients. -/
+theorem raceWinnerEntropy_le_of_uniform_entropy_bound
+    {p : α × β → ℝ} (D : SeedSetup p) (K : Clustering D) (a b : ℝ)
+    (h : ∀ (μ : α × β → ℝ) (r : (α × β) → K.κ → ℝ),
+      IsPMF μ → (∀ z, μ z ≠ 0 → IsPMF (r z)) →
+      (∀ z, μ z ≠ 0 → ∀ i, 0 < r z i) →
+      SharedRace.sharedRaceEntropy μ r ≤
+        a * MI Prod.fst Prod.snd (SharedRace.posteriorJoint μ r) +
+          b * SharedRace.categoricalMismatch μ r) :
+    raceWinnerEntropy D ≤ a * K.Sinfo + b * K.dMis := by
+  calc
+    raceWinnerEntropy D =
+        ∑ g, K.s g * SharedRace.sharedRaceEntropy (K.Q g)
+          (fun z c => K.sigma c z) :=
+      raceWinnerEntropy_eq_sharedRaceEntropy_sum D K
+    _ ≤ ∑ g, K.s g *
+        (a * MI Prod.fst Prod.snd (scalarPosteriorJoint K g) +
+          b * ∑ z, K.Q g z * (1 - ∑ c, K.sigma c z ^ 2)) := by
+      apply Finset.sum_le_sum
+      intro g _
+      have hg := h (K.Q g) (fun z c => K.sigma c z) (K.Q_isContact g).1
+        (clusterPosterior_isPMF_of_Q_support K g)
+        (clusterPosterior_pos_of_Q_support K g)
+      rw [sharedRace_posterior_MI_eq_scalarPosterior_MI K g] at hg
+      exact mul_le_mul_of_nonneg_left hg (clusterMass_nonneg K g)
+    _ = a * K.Sinfo + b * K.dMis := by
+      rw [Sinfo_eq_scalarPosterior_MI K, ← coneCharge_eq_dMis K]
+      unfold coneCharge
+      rw [Finset.mul_sum, Finset.mul_sum, ← Finset.sum_add_distrib]
+      apply Finset.sum_congr rfl
+      intro g _
+      ring
+
+theorem raceWinnerEntropy_le_of_sharedRaceBound
+    {p : α × β → ℝ} (D : SeedSetup p) (K : Clustering D)
+    (h : SharedRace.HasSharedRaceBound (α × β) K.κ) :
+    raceWinnerEntropy D ≤ 2 * K.Sinfo + K.dMis := by
+  calc
+    raceWinnerEntropy D =
+        ∑ g, K.s g * SharedRace.sharedRaceEntropy (K.Q g)
+          (fun z c => K.sigma c z) :=
+      raceWinnerEntropy_eq_sharedRaceEntropy_sum D K
+    _ ≤ ∑ g, K.s g *
+        (2 * MI Prod.fst Prod.snd (scalarPosteriorJoint K g) +
+          ∑ z, K.Q g z * (1 - ∑ c, K.sigma c z ^ 2)) := by
+      apply Finset.sum_le_sum
+      intro g _
+      exact mul_le_mul_of_nonneg_left (sharedRaceEntropy_context_le K h g)
+        (clusterMass_nonneg K g)
+    _ = 2 * K.Sinfo + K.dMis := by
+      rw [Sinfo_eq_scalarPosterior_MI K, ← coneCharge_eq_dMis K]
+      unfold coneCharge
+      rw [Finset.mul_sum, ← Finset.sum_add_distrib]
+      apply Finset.sum_congr rfl
+      intro g _
+      ring
+
+noncomputable def concreteRaceQuantities {p : α × β → ℝ}
+    (D : SeedSetup p) (K : Clustering D) : RaceQuantities D K :=
+  {
     seedLeak := raceSeedLeak D
     scalar := raceScalar K
     cone := raceCone K
@@ -9471,7 +11626,26 @@ theorem exists_raceQuantities {p : α × β → ℝ} (D : SeedSetup p)
     scalar_le := race_scalar_le K
     cone_le_nats := race_cone_le_nats D K
     rcell_le := race_rcell_le D
-  }⟩
+  }
+
+/-- The concrete seed-level construction supplies every field of
+`RaceQuantities`, concentrating its measure-theoretic implementation here. -/
+theorem exists_raceQuantities {p : α × β → ℝ} (D : SeedSetup p)
+    (K : Clustering D) : Nonempty (RaceQuantities D K) :=
+  ⟨concreteRaceQuantities D K⟩
+
+/-- The concrete race quantities satisfy the joint seed bound as soon as the
+universal all-label shared-race theorem is available.  This is the direct
+bridge used by the `C < 96` ledger. -/
+theorem exists_raceQuantities_joint {p : α × β → ℝ} (D : SeedSetup p)
+    (K : Clustering D)
+    (h : SharedRace.HasSharedRaceBound (α × β) K.κ) :
+    ∃ R : RaceQuantities D K, R.seedLeak ≤ K.Sinfo + K.dMis := by
+  refine ⟨concreteRaceQuantities D K, ?_⟩
+  change raceSeedLeak D ≤ K.Sinfo + K.dMis
+  have hwinner := raceWinnerEntropy_le_of_sharedRaceBound D K h
+  rw [race_winner_entropy_identity D K] at hwinner
+  linarith
 
 /-- The same race construction equipped with the sharpened scalar estimate. -/
 theorem exists_raceQuantities1771 {p : α × β → ℝ} (D : SeedSetup p)

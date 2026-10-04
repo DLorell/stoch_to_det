@@ -126,10 +126,10 @@ private lemma pairMass_pos (c d : K.κ) : 0 < pairMass K c d := by
   · exact ⟨z, mem_univ z,
       mul_pos (mul_pos hpz (K.sigma_pos c z hz)) (K.sigma_pos d z hz)⟩
 
-private lemma pairMass_nonneg (c d : K.κ) : 0 ≤ pairMass K c d :=
+lemma pairMass_nonneg (c d : K.κ) : 0 ≤ pairMass K c d :=
   (pairMass_pos K c d).le
 
-private lemma sum_pairMass_right (c : K.κ) : ∑ d, pairMass K c d = K.s c := by
+lemma sum_pairMass_right (c : K.κ) : ∑ d, pairMass K c d = K.s c := by
   unfold pairMass
   rw [sum_comm]
   simp_rw [← mul_sum]
@@ -152,7 +152,7 @@ private lemma sum_pairMass_right (c : K.κ) : ∑ d, pairMass K c d = K.s c := b
             simpa [mass] using (Q_isPMF K c).total
           rw [htotal, mul_one]
 
-private lemma overlapLaw_isPMF (c d : K.κ) : IsPMF (overlapLaw K c d) := by
+lemma overlapLaw_isPMF (c d : K.κ) : IsPMF (overlapLaw K c d) := by
   constructor
   · intro z
     exact div_nonneg
@@ -163,7 +163,7 @@ private lemma overlapLaw_isPMF (c d : K.κ) : IsPMF (overlapLaw K c d) := by
     rw [← sum_div]
     exact div_self (pairMass_pos K c d).ne'
 
-private lemma overlapLaw_absCont_Q (c d : K.κ) :
+lemma overlapLaw_absCont_Q (c d : K.κ) :
     AbsCont (overlapLaw K c d) (K.Q c) := by
   intro z hQz
   have hzero := p_mul_sigma K c z
@@ -416,14 +416,14 @@ lemma pairMass_comm (c d : K.κ) : pairMass K c d = pairMass K d c := by
   intro z _
   ring
 
-private lemma overlapLaw_comm (c d : K.κ) : overlapLaw K c d = overlapLaw K d c := by
+lemma overlapLaw_comm (c d : K.κ) : overlapLaw K c d = overlapLaw K d c := by
   funext z
   unfold overlapLaw
   rw [pairMass_comm K c d]
   congr 1
   ring
 
-private lemma overlapLaw_absCont_Q_right (c d : K.κ) :
+lemma overlapLaw_absCont_Q_right (c d : K.κ) :
     AbsCont (overlapLaw K c d) (K.Q d) := by
   intro z hQz
   have hzero := p_mul_sigma K d z
@@ -434,7 +434,8 @@ private lemma overlapLaw_absCont_Q_right (c d : K.κ) :
         (p z * K.sigma d z) * K.sigma c z / pairMass K c d := by ring
     _ = 0 := by rw [hzero]; simp
 
-private lemma KL_nonneg_local {P Q : α × β → ℝ} (hP : IsPMF P) (hQ : IsPMF Q)
+omit [DecidableEq α] [DecidableEq β] in
+lemma KL_nonneg_local {P Q : α × β → ℝ} (hP : IsPMF P) (hQ : IsPMF Q)
     (hac : AbsCont P Q) : 0 ≤ KL P Q := by
   have hnats := gibbs_nonneg hP hQ (fun z hz => fun hQz => hz (hac z hQz))
   rw [KL]
@@ -453,7 +454,7 @@ private lemma Q_pos_of_mem_support (c : K.κ) (z : α × β) (hz : z ∈ support
   have hQnonneg := (Q_isPMF K c).nonneg z
   nlinarith
 
-private lemma BC_Q_pos (c d : K.κ) : 0 < BC (K.Q c) (K.Q d) := by
+lemma BC_Q_pos (c d : K.κ) : 0 < BC (K.Q c) (K.Q d) := by
   have hex : ∃ z, K.Q c z ≠ 0 := by
     by_contra h
     push Not at h
@@ -594,7 +595,7 @@ private lemma M_eq_sum_prior_Ixy :
   intro i _
   exact MI_label_joint_fiber (D := D) i
 
-private lemma M_eq_sum_s_Ixy : D.M = ∑ c, K.s c * Ixy (K.Q c) := by
+lemma M_eq_sum_s_Ixy : D.M = ∑ c, K.s c * Ixy (K.Q c) := by
   rw [M_eq_sum_prior_Ixy (D := D)]
   calc
     ∑ i, D.L.prior i * Ixy (D.L.comp i) =
@@ -614,7 +615,7 @@ private lemma M_eq_sum_s_Ixy : D.M = ∑ c, K.s c * Ixy (K.Q c) := by
             intro c _
             rw [Clustering.s, sum_mul]
 
-private lemma Ixy_nonneg_local {q : α × β → ℝ} (hq : IsPMF q) : 0 ≤ Ixy q := by
+lemma Ixy_nonneg_local {q : α × β → ℝ} (hq : IsPMF q) : 0 ≤ Ixy q := by
   have h := MI_nonneg hq Prod.fst Prod.snd
   unfold MI Hvar at h
   have hid : (fun z : α × β => (z.1, z.2)) = id := by
@@ -794,7 +795,7 @@ theorem far_charge :
       dsimp [a]
       field_simp [deltaStar_pos.ne', (Real.log_pos (by norm_num : (1 : ℝ) < 2)).ne']
 
-private lemma dMis_eq_sum_pairMass :
+lemma dMis_eq_sum_pairMass :
     K.dMis = ∑ c, ∑ d ∈ univ.filter (fun d => c ≠ d), pairMass K c d := by
   rw [K.dMis_eq]
   unfold pairMass
@@ -885,6 +886,200 @@ theorem mismatch_charge_Korth :
     _ ≤ Korth * D.M + Korth * K.Sinfo := by
       exact add_le_add (le_refl _) (mul_le_mul_of_nonneg_right hcoef hS)
     _ = Korth * (D.M + K.Sinfo) := by ring
+
+/-! ## Parametric Hellinger mismatch charge -/
+
+/-- Squared-Hellinger near relation at an arbitrary threshold. -/
+def IsHNearAt (δ : ℝ) (c d : K.κ) : Prop :=
+  hellingerSq (K.Q c) (K.Q d) ≤ δ
+
+noncomputable instance instDecidableIsHNearAt (δ : ℝ) (c d : K.κ) :
+    Decidable (IsHNearAt K δ c d) := Classical.dec _
+
+/-- A Hellinger-far pair pays at least `δ / log 2` in the two directed KL
+charges. -/
+theorem far_pair_KL_of_not_hnear (δ : ℝ) (c d : K.κ)
+    (hfar : ¬ IsHNearAt K δ c d) :
+    δ / Real.log 2 ≤
+      KL (overlapLaw K c d) (K.Q c) + KL (overlapLaw K c d) (K.Q d) := by
+  have hQc := Q_isPMF K c
+  have hQd := Q_isPMF K d
+  have hr := overlapLaw_isPMF K c d
+  have hbh := bhattacharyya_le hQc hQd hr
+    (overlapLaw_absCont_Q K c d) (overlapLaw_absCont_Q_right K c d)
+  have hdelta : δ < hellingerSq (K.Q c) (K.Q d) :=
+    lt_of_not_ge hfar
+  have hhell := hellingerSq_eq_two_mul_one_sub_BC hQc hQd
+  have hB : 0 < BC (K.Q c) (K.Q d) := BC_Q_pos K c d
+  have hlog_bound := Real.log_le_sub_one_of_pos hB
+  have hdelta_log :
+      δ ≤ -2 * Real.log (BC (K.Q c) (K.Q d)) := by
+    rw [hhell] at hdelta
+    linarith
+  have hlog2 : 0 < Real.log 2 := Real.log_pos one_lt_two
+  calc
+    δ / Real.log 2 ≤
+        (-2 * Real.log (BC (K.Q c) (K.Q d))) / Real.log 2 :=
+      (div_le_div_iff_of_pos_right hlog2).2 hdelta_log
+    _ = -2 * lg (BC (K.Q c) (K.Q d)) := by
+      rw [lg_eq_log_div]
+      ring
+    _ ≤ KL (overlapLaw K c d) (K.Q c) +
+        KL (overlapLaw K c d) (K.Q d) := hbh
+
+/-- Near pairs at threshold `δ` are paid for by any positive information floor
+valid for each incident first component. -/
+theorem near_charge_of_hellinger_floor (δ F : ℝ) (hF : 0 < F)
+    (hfloor : ∀ c d : K.κ, c ≠ d → IsHNearAt K δ c d → F ≤ Ixy (K.Q c)) :
+    ∑ c, ∑ d ∈ univ.filter (fun d => c ≠ d ∧ IsHNearAt K δ c d), pairMass K c d
+      ≤ D.M / F := by
+  let Incident : K.κ → Prop := fun c => ∃ d, c ≠ d ∧ IsHNearAt K δ c d
+  letI : DecidablePred Incident := fun c => Classical.dec _
+  have hfloor_c (c : K.κ) (hc : Incident c) : F ≤ Ixy (K.Q c) := by
+    obtain ⟨d, hcd, hnear⟩ := hc
+    exact hfloor c d hcd hnear
+  have hpay : F * (∑ c ∈ univ.filter Incident, K.s c) ≤ D.M := by
+    calc
+      F * (∑ c ∈ univ.filter Incident, K.s c) =
+          ∑ c ∈ univ.filter Incident, F * K.s c := by
+            rw [mul_sum]
+      _ ≤ ∑ c ∈ univ.filter Incident, K.s c * Ixy (K.Q c) := by
+        apply sum_le_sum
+        intro c hc
+        simpa [mul_comm] using
+          mul_le_mul_of_nonneg_left (hfloor_c c (mem_filter.mp hc).2) (s_pos K c).le
+      _ ≤ ∑ c, K.s c * Ixy (K.Q c) := by
+        exact sum_le_univ_sum_of_nonneg fun c =>
+          mul_nonneg (s_pos K c).le (Ixy_nonneg_local (Q_isPMF K c))
+      _ = D.M := (M_eq_sum_s_Ixy K).symm
+  have hmass : (∑ c ∈ univ.filter Incident, K.s c) ≤ D.M / F := by
+    apply (le_div_iff₀ hF).2
+    simpa [mul_comm] using hpay
+  have hnear_incident :
+      (∑ c, ∑ d ∈ univ.filter (fun d => c ≠ d ∧ IsHNearAt K δ c d),
+        pairMass K c d) ≤ ∑ c ∈ univ.filter Incident, K.s c := by
+    rw [sum_filter]
+    apply sum_le_sum
+    intro c _
+    by_cases hc : Incident c
+    · rw [if_pos hc]
+      calc
+        ∑ d ∈ univ.filter (fun d => c ≠ d ∧ IsHNearAt K δ c d), pairMass K c d ≤
+            ∑ d, pairMass K c d :=
+          sum_le_univ_sum_of_nonneg fun d => pairMass_nonneg K c d
+        _ = K.s c := sum_pairMass_right K c
+    · rw [if_neg hc]
+      have hzero :
+          (∑ d ∈ univ.filter (fun d => c ≠ d ∧ IsHNearAt K δ c d),
+            pairMass K c d) = 0 := by
+        apply sum_eq_zero
+        intro d hd
+        exact (hc ⟨d, (mem_filter.mp hd).2⟩).elim
+      rw [hzero]
+  exact hnear_incident.trans hmass
+
+/-- Far pairs at a positive squared-Hellinger threshold `δ` are paid for at
+cost `δ / log 2`; ordered pairs cause the factor two. -/
+theorem far_charge_of_hellinger (δ : ℝ) (hδ : 0 < δ) :
+    ∑ c, ∑ d ∈ univ.filter (fun d => c ≠ d ∧ ¬ IsHNearAt K δ c d), pairMass K c d
+      ≤ 2 * Real.log 2 / δ * K.Sinfo := by
+  let a : ℝ := δ / Real.log 2
+  let Fmass : ℝ :=
+    ∑ c, ∑ d ∈ univ.filter (fun d => c ≠ d ∧ ¬ IsHNearAt K δ c d), pairMass K c d
+  let A₁ : ℝ :=
+    ∑ c, ∑ d ∈ univ.filter (fun d => c ≠ d ∧ ¬ IsHNearAt K δ c d),
+      pairMass K c d * KL (overlapLaw K c d) (K.Q c)
+  let A₂ : ℝ :=
+    ∑ c, ∑ d ∈ univ.filter (fun d => c ≠ d ∧ ¬ IsHNearAt K δ c d),
+      pairMass K c d * KL (overlapLaw K c d) (K.Q d)
+  have hA₁ : A₁ ≤ K.Sinfo := by
+    dsimp [A₁]
+    rw [Sinfo_eq_sum_KL K]
+    apply sum_le_sum
+    intro c _
+    exact sum_le_univ_sum_of_nonneg fun d =>
+      mul_nonneg (pairMass_nonneg K c d)
+        (KL_nonneg_local (overlapLaw_isPMF K c d) (Q_isPMF K c)
+          (overlapLaw_absCont_Q K c d))
+  have hall₂ : (∑ c, ∑ d,
+      pairMass K c d * KL (overlapLaw K c d) (K.Q d)) = K.Sinfo := by
+    rw [Sinfo_eq_sum_KL K, sum_comm]
+    apply sum_congr rfl
+    intro c _
+    apply sum_congr rfl
+    intro d _
+    rw [pairMass_comm K d c, overlapLaw_comm K d c]
+  have hA₂ : A₂ ≤ K.Sinfo := by
+    calc
+      A₂ ≤ ∑ c, ∑ d,
+          pairMass K c d * KL (overlapLaw K c d) (K.Q d) := by
+        dsimp [A₂]
+        apply sum_le_sum
+        intro c _
+        exact sum_le_univ_sum_of_nonneg fun d =>
+          mul_nonneg (pairMass_nonneg K c d)
+            (KL_nonneg_local (overlapLaw_isPMF K c d) (Q_isPMF K d)
+              (overlapLaw_absCont_Q_right K c d))
+      _ = K.Sinfo := hall₂
+  have hcost : a * Fmass ≤ A₁ + A₂ := by
+    calc
+      a * Fmass = ∑ c, ∑ d ∈ univ.filter
+          (fun d => c ≠ d ∧ ¬ IsHNearAt K δ c d), a * pairMass K c d := by
+            dsimp [Fmass]
+            rw [mul_sum]
+            apply sum_congr rfl
+            intro c _
+            rw [mul_sum]
+      _ ≤ ∑ c, ∑ d ∈ univ.filter
+          (fun d => c ≠ d ∧ ¬ IsHNearAt K δ c d),
+          pairMass K c d *
+            (KL (overlapLaw K c d) (K.Q c) +
+              KL (overlapLaw K c d) (K.Q d)) := by
+            apply sum_le_sum
+            intro c _
+            apply sum_le_sum
+            intro d hd
+            have hfar := (mem_filter.mp hd).2.2
+            simpa [a, mul_comm] using
+              mul_le_mul_of_nonneg_left (far_pair_KL_of_not_hnear K δ c d hfar)
+                (pairMass_nonneg K c d)
+      _ = A₁ + A₂ := by
+            dsimp [A₁, A₂]
+            simp_rw [mul_add, sum_add_distrib]
+  have htotal : a * Fmass ≤ 2 * K.Sinfo := by linarith
+  have ha : 0 < a := div_pos hδ (Real.log_pos one_lt_two)
+  change Fmass ≤ 2 * Real.log 2 / δ * K.Sinfo
+  apply (mul_le_mul_iff_of_pos_left ha).mp
+  calc
+    a * Fmass ≤ 2 * K.Sinfo := htotal
+    _ = a * (2 * Real.log 2 / δ * K.Sinfo) := by
+      dsimp [a]
+      field_simp [hδ.ne', (Real.log_pos one_lt_two).ne']
+
+/-- Parametric Hellinger near/far mismatch charge. -/
+theorem mismatch_charge_of_hellinger_floor (δ F : ℝ)
+    (hδ : 0 < δ) (hF : 0 < F)
+    (hfloor : ∀ c d : K.κ, c ≠ d → IsHNearAt K δ c d → F ≤ Ixy (K.Q c)) :
+    K.dMis ≤ D.M / F + 2 * Real.log 2 / δ * K.Sinfo := by
+  rw [dMis_eq_sum_pairMass K]
+  calc
+    ∑ c, ∑ d ∈ univ.filter (fun d => c ≠ d), pairMass K c d =
+        (∑ c, ∑ d ∈ univ.filter
+          (fun d => c ≠ d ∧ IsHNearAt K δ c d), pairMass K c d) +
+        ∑ c, ∑ d ∈ univ.filter
+          (fun d => c ≠ d ∧ ¬ IsHNearAt K δ c d), pairMass K c d := by
+            rw [← sum_add_distrib]
+            apply sum_congr rfl
+            intro c _
+            simp only [sum_filter, ← sum_add_distrib]
+            apply sum_congr rfl
+            intro d _
+            by_cases hcd : c ≠ d
+            · by_cases hn : IsHNearAt K δ c d <;> simp [hcd, hn]
+            · simp [hcd]
+    _ ≤ D.M / F + 2 * Real.log 2 / δ * K.Sinfo :=
+      add_le_add (near_charge_of_hellinger_floor K δ F hF hfloor)
+        (far_charge_of_hellinger K δ hδ)
 
 /-! ## Improved Hellinger mismatch charge -/
 
